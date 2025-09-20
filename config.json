@@ -1,0 +1,34 @@
+{
+  "audio": {
+    "sample_rate": 44100,
+    "chunk_size": 1024,
+    "channels": 1,
+    "format": "paInt16"
+  },
+  "breathing": {
+    "sensitivity": 1.0,
+    "min_state_duration": 0.3,
+    "calibration_samples": 100,
+    "smoothing_window": 3
+  },
+  "game": {
+    "game_width": 800,
+    "game_height": 600,
+    "gravity": 0.5,
+    "breathing_force": 8.0,
+    "exhale_force": 4.0,
+    "max_velocity": 10.0,
+    "pipe_speed": 3.0,
+    "pipe_spawn_distance": 300,
+    "pipe_gap_height": 120,
+    "bird_radius": 20,
+    "target_fps": 60
+  },
+  "server": {
+    "host": "localhost",
+    "port": 5000,
+    "debug": false,
+    "cors_origins": "*",
+    "secret_key": "breathing_flappy_bird_secret"
+  }
+}

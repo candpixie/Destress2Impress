@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐦 Breathing Flappy Bird</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P:wght@400&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐦</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="game-header">
+            <h1>🐦 Breathing Flappy Bird</h1>
+            <p class="subtitle">Control the bird with your breathing!</p>
+        </header>
+
+        <!-- Connection Status -->
+        <div id="connection-status" class="status-bar disconnected">
+            <span id="status-icon">🔴</span>
+            <span id="status-text">Connecting to server...</span>
+        </div>
+
+        <!-- Game Canvas Container -->
+        <div class="game-container">
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            
+            <!-- Game Overlay -->
+            <div id="game-overlay" class="game-overlay">
+                <div id="start-screen" class="screen active">
+                    <h2>🎮 Ready to Play?</h2>
+                    <p>Breathe to control the bird:</p>
+                    <div class="instructions">
+                        <div class="instruction">
+                            <span class="breathing-icon">🫁⬆️</span>
+                            <span>Inhale = Bird goes UP</span>
+                        </div>
+                        <div class="instruction">
+                            <span class="breathing-icon">🫁⬇️</span>
+                            <span>Exhale = Bird goes DOWN</span>
+                        </div>
+                        <div class="instruction">
+                            <span class="breathing-icon">🫁➡️</span>
+                            <span>Hold = Bird falls</span>
+                        </div>
+                    </div>
+                    <button id="start-btn" class="game-btn primary">Start Game</button>
+                </div>
+
+                <div id="game-over-screen" class="screen">
+                    <h2>💀 Game Over!</h2>
+                    <div id="final-score" class="score-display">
+                        <div class="score-item">
+                            <span class="label">Score:</span>
+                            <span id="final-score-value">0</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">High Score:</span>
+                            <span id="final-high-score">0</span>
+                        </div>
+                        <div class="score-item">
+                            <span class="label">Time:</span>
+                            <span id="final-time">0s</span>
+                        </div>
+                    </div>
+                    <div class="game-over-actions">
+                        <button id="restart-btn" class="game-btn primary">Play Again</button>
+                        <button id="menu-btn" class="game-btn secondary">Main Menu</button>
+                    </div>
+                </div>
+
+                <div id="pause-screen" class="screen">
+                    <h2>⏸️ Game Paused</h2>
+                    <p>Take a breath and get ready!</p>
+                    <button id="resume-btn" class="game-btn primary">Resume</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game UI -->
+        <div class="game-ui">
+            <!-- Score Display -->
+            <div class="score-panel">
+                <div class="score-item">
+                    <span class="label">Score</span>
+                    <span id="current-score" class="value">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="label">High Score</span>
+                    <span id="high-score" class="value">0</span>
+                </div>
+            </div>
+
+            <!-- Breathing Indicator -->
+            <div class="breathing-panel">
+                <h3>🫁 Breathing Status</h3>
+                <div id="breathing-indicator" class="breathing-indicator neutral">
+                    <div class="breathing-visual">
+                        <div id="breathing-circle" class="breathing-circle"></div>
+                    </div>
+                    <div class="breathing-text">
+                        <span id="breathing-state">Ready</span>
+                        <div id="breathing-volume" class="volume-bar">
+                            <div id="volume-fill" class="volume-fill"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="calibration-status" class="calibration-status">
+                    <span id="calibration-icon">⚠️</span>
+                    <span id="calibration-text">Not calibrated</span>
+                </div>
+            </div>
+
+            <!-- Game Controls -->
+            <div class="controls-panel">
+                <h3>🎮 Game Controls</h3>
+                <div class="control-buttons">
+                    <button id="pause-btn" class="control-btn" disabled>
+                        <span class="icon">⏸️</span>
+                        <span>Pause</span>
+                    </button>
+                    <button id="stop-btn" class="control-btn" disabled>
+                        <span class="icon">⏹️</span>
+                        <span>Stop</span>
+                    </button>
+                    <button id="calibrate-btn" class="control-btn">
+                        <span class="icon">🎯</span>
+                        <span>Calibrate</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings Panel -->
+            <div class="settings-panel">
+                <h3>⚙️ Settings</h3>
+                <div class="setting-item">
+                    <label for="sensitivity-slider">Breathing Sensitivity:</label>
+                    <div class="slider-container">
+                        <input type="range" id="sensitivity-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+                        <span id="sensitivity-value">1.0</span>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="checkmark"></span>
+                        Sound Effects
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="breathing-feedback" checked>
+                        <span class="checkmark"></span>
+                        Breathing Feedback
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Panel (hidden by default) -->
+        <div id="debug-panel" class="debug-panel" style="display: none;">
+            <h3>🔧 Debug Info</h3>
+            <div class="debug-info">
+                <div class="debug-item">
+                    <span>FPS:</span>
+                    <span id="fps-counter">60</span>
+                </div>
+                <div class="debug-item">
+                    <span>Bird Position:</span>
+                    <span id="bird-position">0, 0</span>
+                </div>
+                <div class="debug-item">
+                    <span>Bird Velocity:</span>
+                    <span id="bird-velocity">0</span>
+                </div>
+                <div class="debug-item">
+                    <span>Active Pipes:</span>
+                    <span id="active-pipes">0</span>
+                </div>
+                <div class="debug-item">
+                    <span>Breathing Volume:</span>
+                    <span id="debug-volume">0</span>
+                </div>
+            </div>
+            <button id="toggle-debug" class="control-btn">Hide Debug</button>
+        </div>
+
+        <!-- Footer -->
+        <footer class="game-footer">
+            <p>Made with ❤️ for breathing-controlled gaming</p>
+            <div class="footer-controls">
+                <button id="show-debug" class="text-btn">Show Debug</button>
+                <button id="fullscreen-btn" class="text-btn">Fullscreen</button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>🎮 Loading Game...</h2>
+            <p id="loading-text">Initializing breathing detection...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='game-renderer.js') }}"></script>
+    <script src="{{ url_for('static', filename='websocket-client.js') }}"></script>
+    <script src="{{ url_for('static', filename='game-ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐨 3D Fashion Store - Koala Adventure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(45deg, #ff6b9d, #f06292);
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            color: white;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="loading">🐨 Loading Fashion Store...</div>
+        <div id="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Accessories Collected: <span id="accessories">0</span></div>
+        </div>
+        <div id="instructions">
+            <strong>Controls:</strong><br>
+            WASD or Arrow Keys - Move Koala<br>
+            Spacebar - Jump<br>
+            Mouse - Look Around<br>
+            R Key - Reset to Original Color<br>
+            M Key - Toggle Background Music<br>
+            Walk near colorful dresses to change koala color!<br>
+            Collect floating accessories to increase your score!
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let scene, camera, renderer, koala, mixer;
+        let accessories = [];
+        let shelves = [];
+        let dresses = []; // Array to track all dresses for interaction
+        let koalaOutfit = null; // Current dress the koala is wearing
+        let score = 0;
+        let accessoryCount = 0;
+        let clock = new THREE.Clock();
+        
+        // Physics variables
+        let koalaVelocity = new THREE.Vector3(0, 0, 0);
+        let isJumping = false;
+        let groundLevel = 0;
+        const gravity = -0.02;
+        const jumpPower = 0.3;
+        const moveSpeed = 0.1;
+        
+        // Input handling
+        const keys = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            jump: false,
+            undress: false,
+            music: false
+        };
+        
+        // Initialize the game
+        function init() {
+            try {
+                console.log('Starting init...');
+                
+                // Check if THREE is loaded
+                if (typeof THREE === 'undefined') {
+                    console.error('THREE.js not loaded!');
+                    document.getElementById('loading').innerHTML = '❌ Error: THREE.js failed to load';
+                    return;
+                }
+                
+                console.log('THREE.js loaded, creating scene...');
+                
+                // Create scene
+                scene = new THREE.Scene();
+                scene.fog = new THREE.Fog(0xcccccc, 1, 100);
+                
+                // Create camera
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 5, 10);
+                
+                // Create renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.setClearColor(0x87CEEB);
+                document.getElementById('gameContainer').appendChild(renderer.domElement);
+                
+                console.log('Basic setup complete, adding lighting...');
+                
+                // Add lighting
+                setupLighting();
+                
+                console.log('Creating floor...');
+                // Create floor
+                createFloor();
+                
+                console.log('Creating fashion store...');
+                // Create fashion store environment
+                createFashionStore();
+                
+                console.log('Creating koala...');
+                // Create koala (using basic geometry for now, can be replaced with GLTF)
+                createKoala();
+                
+                console.log('Creating accessories...');
+                // Create floating accessories
+                createAccessories();
+                
+                console.log('Setting up event listeners...');
+                // Event listeners
+                setupEventListeners();
+                
+                console.log('Initializing background music...');
+                // Initialize background music
+                initializeMusic();
+                
+                console.log('Hiding loading screen...');
+                // Hide loading screen
+                document.getElementById('loading').style.display = 'none';
+                
+                console.log('Starting animation loop...');
+                // Start game loop
+                animate();
+                
+            } catch (error) {
+                console.error('Error in init():', error);
+                document.getElementById('loading').innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+        
+        function setupLighting() {
+            // Ambient light
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            // Directional light (sun)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 50, 25);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.1;
+            directionalLight.shadow.camera.far = 200;
+            directionalLight.shadow.camera.left = -50;
+            directionalLight.shadow.camera.right = 50;
+            directionalLight.shadow.camera.top = 50;
+            directionalLight.shadow.camera.bottom = -50;
+            scene.add(directionalLight);
+            
+            // Point lights for store ambiance
+            const pointLight1 = new THREE.PointLight(0xffffff, 0.5, 30);
+            pointLight1.position.set(10, 8, 10);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0xffffff, 0.5, 30);
+            pointLight2.position.set(-10, 8, -10);
+            scene.add(pointLight2);
+        }
+        
+        function createFloor() {
+            const floorGeometry = new THREE.PlaneGeometry(100, 100);
+            const floorMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.8
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = groundLevel;
+            floor.receiveShadow = true;
+            scene.add(floor);
+            
+            // Add a checkerboard pattern
+            const textureLoader = new THREE.TextureLoader();
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = 128;
+            const context = canvas.getContext('2d');
+            
+            // Create checkerboard pattern
+            const size = 16;
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    context.fillStyle = (i + j) % 2 ? '#ff6b9d' : '#ffffff';
+                    context.fillRect(i * size, j * size, size, size);
+                }
+            }
+            
+            const floorTexture = new THREE.CanvasTexture(canvas);
+            floorTexture.repeat.set(10, 10);
+            floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+            floor.material.map = floorTexture;
+        }
+        
+        function createFashionStore() {
+            // Create store walls
+            const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xf0f0f0 });
+            
+            // Back wall
+            const backWallGeometry = new THREE.BoxGeometry(40, 15, 1);
+            const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+            backWall.position.set(0, 7.5, -20);
+            backWall.receiveShadow = true;
+            scene.add(backWall);
+            
+            // Side walls
+            const sideWallGeometry = new THREE.BoxGeometry(1, 15, 40);
+            const leftWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+            leftWall.position.set(-20, 7.5, 0);
+            leftWall.receiveShadow = true;
+            scene.add(leftWall);
+            
+            const rightWall = new THREE.Mesh(sideWallGeometry, wallMaterial);
+            rightWall.position.set(20, 7.5, 0);
+            rightWall.receiveShadow = true;
+            scene.add(rightWall);
+            
+            // Create game area boundaries (visible walls)
+            createGameAreaBoundaries();
+            
+            // Create shelves
+            createShelves();
+        }
+        
+        function createGameAreaBoundaries() {
+            // Create semi-transparent boundary walls to show play area
+            const boundaryMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x4169E1, 
+                transparent: true, 
+                opacity: 0.3,
+                side: THREE.DoubleSide
+            });
+            
+            const wallHeight = 5;
+            const wallThickness = 0.2;
+            
+            // Front boundary (negative Z)
+            const frontBoundary = new THREE.BoxGeometry(30, wallHeight, wallThickness);
+            const frontWall = new THREE.Mesh(frontBoundary, boundaryMaterial);
+            frontWall.position.set(0, wallHeight/2, -15);
+            scene.add(frontWall);
+            
+            // Back boundary (positive Z)
+            const backBoundary = new THREE.BoxGeometry(30, wallHeight, wallThickness);
+            const backWall = new THREE.Mesh(backBoundary, boundaryMaterial);
+            backWall.position.set(0, wallHeight/2, 15);
+            scene.add(backWall);
+            
+            // Left boundary (negative X)
+            const leftBoundary = new THREE.BoxGeometry(wallThickness, wallHeight, 30);
+            const leftBoundaryWall = new THREE.Mesh(leftBoundary, boundaryMaterial);
+            leftBoundaryWall.position.set(-15, wallHeight/2, 0);
+            scene.add(leftBoundaryWall);
+            
+            // Right boundary (positive X)
+            const rightBoundary = new THREE.BoxGeometry(wallThickness, wallHeight, 30);
+            const rightBoundaryWall = new THREE.Mesh(rightBoundary, boundaryMaterial);
+            rightBoundaryWall.position.set(15, wallHeight/2, 0);
+            scene.add(rightBoundaryWall);
+            
+            // Add corner posts for better visibility
+            const cornerMaterial = new THREE.MeshLambertMaterial({ color: 0x2E8B57 });
+            const cornerGeometry = new THREE.CylinderGeometry(0.3, 0.3, wallHeight);
+            
+            const corners = [
+                [-15, wallHeight/2, -15],
+                [15, wallHeight/2, -15],
+                [-15, wallHeight/2, 15],
+                [15, wallHeight/2, 15]
+            ];
+            
+            corners.forEach(([x, y, z]) => {
+                const corner = new THREE.Mesh(cornerGeometry, cornerMaterial);
+                corner.position.set(x, y, z);
+                scene.add(corner);
+            });
+        }
+        
+        
+        function createShelves() {
+            const shelfMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            shelves = []; // Global array to store shelf collision boxes
+            
+            // Create multiple shelves around the store
+            for (let i = 0; i < 6; i++) {
+                const shelfGeometry = new THREE.BoxGeometry(4, 0.2, 2);
+                const shelf = new THREE.Mesh(shelfGeometry, shelfMaterial);
+                
+                const angle = (i / 6) * Math.PI * 2;
+                const radius = 12;
+                shelf.position.set(
+                    Math.cos(angle) * radius,
+                    2 + Math.sin(i) * 0.5,
+                    Math.sin(angle) * radius
+                );
+                
+                shelf.castShadow = true;
+                shelf.receiveShadow = true;
+                scene.add(shelf);
+                
+                // Add collision box for this shelf
+                shelves.push({
+                    position: shelf.position.clone(),
+                    size: { width: 4, height: 4, depth: 2 }
+                });
+                
+                // Add support posts
+                const postGeometry = new THREE.BoxGeometry(0.2, 4, 0.2);
+                const post1 = new THREE.Mesh(postGeometry, shelfMaterial);
+                post1.position.copy(shelf.position);
+                post1.position.y = 2;
+                post1.position.x -= 1.8;
+                post1.castShadow = true;
+                scene.add(post1);
+                
+                const post2 = new THREE.Mesh(postGeometry, shelfMaterial);
+                post2.position.copy(shelf.position);
+                post2.position.y = 2;
+                post2.position.x += 1.8;
+                post2.castShadow = true;
+                scene.add(post2);
+                
+                // Add dresses on the shelf
+                createDressesOnShelf(shelf.position, angle);
+            }
+        }
+
+        function createDressesOnShelf(shelfPosition, angle) {
+            const dressColors = [
+                0xFF69B4, // Hot Pink
+                0xFF1493, // Deep Pink
+                0x9370DB, // Medium Purple
+                0x8A2BE2, // Blue Violet
+                0x00CED1, // Dark Turquoise
+                0x20B2AA, // Light Sea Green
+                0xFF4500, // Orange Red
+                0xFFD700, // Gold
+                0x32CD32, // Lime Green
+                0x87CEEB, // Sky Blue
+                0xFF6347, // Tomato Red
+                0xDA70D6, // Orchid
+                0x00FF7F, // Spring Green
+                0xFF8C00, // Dark Orange
+                0x4169E1, // Royal Blue
+                0xFF00FF, // Magenta
+                0x00FFFF, // Cyan
+                0x7FFF00, // Chartreuse
+                0xDC143C, // Crimson
+                0x1E90FF  // Dodger Blue
+            ];
+            
+            // Create 2 dresses per shelf with wide spacing for better visibility
+            for (let j = 0; j < 2; j++) {
+                const dress = new THREE.Group();
+                let dressColor = dressColors[Math.floor(Math.random() * dressColors.length)];
+                
+                // 15% chance for rainbow dress (increased for more variety)
+                // No rainbow dresses - only regular colored dresses
+                
+                // Always create regular single-color dress (no rainbow)
+                const bodyGeometry = new THREE.ConeGeometry(0.3, 1.5, 8);
+                const bodyMaterial = new THREE.MeshLambertMaterial({ color: dressColor });
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.position.y = 0.75;
+                    dress.add(body);
+                    
+                    // Dress top (bodice)
+                    const topGeometry = new THREE.CylinderGeometry(0.15, 0.2, 0.4, 8);
+                    const topMaterial = new THREE.MeshLambertMaterial({ color: dressColor });
+                    const top = new THREE.Mesh(topGeometry, topMaterial);
+                    top.position.y = 1.7;
+                    dress.add(top);
+                }
+                
+                // Position dress on shelf
+                dress.position.copy(shelfPosition);
+                dress.position.y += 1;
+                dress.position.x += (j - 0.5) * 2.5; // Spread 2 dresses with 2.5 unit spacing
+                
+                // Rotate dress to face outward from shelf
+                dress.rotation.y = angle + Math.PI;
+                
+                dress.castShadow = true;
+                scene.add(dress);
+                
+                // Add to dresses array for interaction
+                dresses.push({
+                    mesh: dress,
+                    color: dressColor,
+                    position: dress.position.clone(),
+                    available: true,
+                    originalScale: dress.scale.clone()
+                });
+            }
+        
+
+        function createKoala() {
+            // Create a basic koala using primitive shapes
+            // This can be replaced with a GLTF model later
+            const koalaGroup = new THREE.Group();
+            
+            // Body
+            const bodyGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+            const koalaMaterial = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+            const body = new THREE.Mesh(bodyGeometry, koalaMaterial);
+            body.scale.set(1, 1.2, 0.8);
+            body.castShadow = true;
+            koalaGroup.add(body);
+            
+            // Head
+            const headGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+            const head = new THREE.Mesh(headGeometry, koalaMaterial);
+            head.position.y = 1.2;
+            head.castShadow = true;
+            koalaGroup.add(head);
+            
+            // Ears
+            const earGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+            const ear1 = new THREE.Mesh(earGeometry, koalaMaterial);
+            ear1.position.set(-0.4, 1.5, 0.2);
+            ear1.castShadow = true;
+            koalaGroup.add(ear1);
+            
+            const ear2 = new THREE.Mesh(earGeometry, koalaMaterial);
+            ear2.position.set(0.4, 1.5, 0.2);
+            ear2.castShadow = true;
+            koalaGroup.add(ear2);
+            
+            // Eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const eyeMaterial = new THREE.MeshLambertMaterial({ color: 0x000000 });
+            const eye1 = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            eye1.position.set(-0.2, 1.3, 0.5);
+            koalaGroup.add(eye1);
+            
+            const eye2 = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            eye2.position.set(0.2, 1.3, 0.5);
+            koalaGroup.add(eye2);
+            
+            // Nose
+            const noseGeometry = new THREE.SphereGeometry(0.05, 6, 6);
+            const nose = new THREE.Mesh(noseGeometry, eyeMaterial);
+            nose.position.set(0, 1.1, 0.55);
+            koalaGroup.add(nose);
+            
+            // Arms
+            const armGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+            const arm1 = new THREE.Mesh(armGeometry, koalaMaterial);
+            arm1.position.set(-0.9, 0.3, 0);
+            arm1.scale.set(0.8, 1.5, 0.8);
+            arm1.castShadow = true;
+            koalaGroup.add(arm1);
+            
+            const arm2 = new THREE.Mesh(armGeometry, koalaMaterial);
+            arm2.position.set(0.9, 0.3, 0);
+            arm2.scale.set(0.8, 1.5, 0.8);
+            arm2.castShadow = true;
+            koalaGroup.add(arm2);
+            
+            // Legs
+            const legGeometry = new THREE.SphereGeometry(0.35, 8, 8);
+            const leg1 = new THREE.Mesh(legGeometry, koalaMaterial);
+            leg1.position.set(-0.4, -0.8, 0);
+            leg1.scale.set(0.8, 1.2, 0.8);
+            leg1.castShadow = true;
+            koalaGroup.add(leg1);
+            
+            const leg2 = new THREE.Mesh(legGeometry, koalaMaterial);
+            leg2.position.set(0.4, -0.8, 0);
+            leg2.scale.set(0.8, 1.2, 0.8);
+            leg2.castShadow = true;
+            koalaGroup.add(leg2);
+            
+            koalaGroup.position.set(0, 1, 0);
+            koala = koalaGroup;
+            scene.add(koala);
+        }
+        
+        function createAccessories() {
+            const accessoryTypes = [
+                { emoji: '👒', color: 0x8B4513, name: 'sunhat', category: 'hat' },
+                { emoji: '🎩', color: 0x000000, name: 'tophat', category: 'hat' },
+                { emoji: '🧢', color: 0x0066CC, name: 'cap', category: 'hat' },
+                { emoji: '👑', color: 0xFFD700, name: 'crown', category: 'hat' },
+                { emoji: '👕', color: 0xFF6B6B, name: 'tshirt', category: 'clothing' },
+                { emoji: '👗', color: 0xFF69B4, name: 'dress', category: 'clothing' },
+                { emoji: '�', color: 0x4ECDC4, name: 'jeans', category: 'clothing' },
+                { emoji: '🦺', color: 0xFF9500, name: 'vest', category: 'clothing' },
+                { emoji: '�👓', color: 0x333333, name: 'glasses', category: 'accessory' },
+                { emoji: '🕶️', color: 0x000000, name: 'sunglasses', category: 'accessory' },
+                { emoji: '👜', color: 0xFF69B4, name: 'handbag', category: 'accessory' },
+                { emoji: '🎒', color: 0x8E44AD, name: 'backpack', category: 'accessory' },
+                { emoji: '👠', color: 0xFF0000, name: 'heels', category: 'shoes' },
+                { emoji: '👟', color: 0x2ECC71, name: 'sneakers', category: 'shoes' },
+                { emoji: '🥾', color: 0x8B4513, name: 'boots', category: 'shoes' },
+                { emoji: '💍', color: 0xFFD700, name: 'ring', category: 'jewelry' },
+                { emoji: '�', color: 0xE74C3C, name: 'necklace', category: 'jewelry' },
+                { emoji: '💎', color: 0x3498DB, name: 'diamond', category: 'jewelry' },
+                { emoji: '⌚', color: 0x95A5A6, name: 'watch', category: 'jewelry' },
+                { emoji: '🧣', color: 0xE67E22, name: 'scarf', category: 'accessory' }
+            ];
+            
+            for (let i = 0; i < 20; i++) {
+                const accessoryType = accessoryTypes[Math.floor(Math.random() * accessoryTypes.length)];
+                const accessory = createSingleAccessory(accessoryType);
+                
+                // Random position within the bounded game area (30x30 area, -15 to 15)
+                accessory.position.set(
+                    (Math.random() - 0.5) * 28, // -14 to 14 (within boundaries)
+                    2 + Math.random() * 3,
+                    (Math.random() - 0.5) * 28  // -14 to 14 (within boundaries)
+                );
+                
+                // Add floating animation
+                accessory.userData.originalY = accessory.position.y;
+                accessory.userData.floatSpeed = 0.02 + Math.random() * 0.02;
+                accessory.userData.floatOffset = Math.random() * Math.PI * 2;
+                
+                accessories.push(accessory);
+                scene.add(accessory);
+            }
+        }
+        
+        function createSingleAccessory(type) {
+            const group = new THREE.Group();
+            
+            let geometry, material;
+            material = new THREE.MeshLambertMaterial({ 
+                color: type.color,
+                transparent: true,
+                opacity: 0.9
+            });
+            
+            // Create different shapes based on accessory category and type
+            switch (type.category) {
+                case 'hat':
+                    switch (type.name) {
+                        case 'sunhat':
+                            // Wide brimmed sun hat
+                            const brimGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.05, 16);
+                            const brim = new THREE.Mesh(brimGeometry, material);
+                            brim.position.y = -0.1;
+                            group.add(brim);
+                            
+                            const crownGeometry = new THREE.CylinderGeometry(0.3, 0.35, 0.3, 12);
+                            const crown = new THREE.Mesh(crownGeometry, material);
+                            crown.position.y = 0.1;
+                            group.add(crown);
+                            break;
+                            
+                        case 'tophat':
+                            geometry = new THREE.CylinderGeometry(0.25, 0.3, 0.6, 12);
+                            const tophat = new THREE.Mesh(geometry, material);
+                            group.add(tophat);
+                            
+                            const tophatBrim = new THREE.CylinderGeometry(0.4, 0.4, 0.05, 16);
+                            const brimMesh = new THREE.Mesh(tophatBrim, material);
+                            brimMesh.position.y = -0.3;
+                            group.add(brimMesh);
+                            break;
+                            
+                        case 'cap':
+                            geometry = new THREE.SphereGeometry(0.3, 12, 8);
+                            const capBase = new THREE.Mesh(geometry, material);
+                            capBase.scale.set(1, 0.6, 1.2);
+                            group.add(capBase);
+                            
+                            const visor = new THREE.CylinderGeometry(0.4, 0.35, 0.05, 12, 1, false, 0, Math.PI);
+                            const visorMesh = new THREE.Mesh(visor, material);
+                            visorMesh.position.set(0, -0.1, 0.2);
+                            visorMesh.rotation.x = Math.PI / 6;
+                            group.add(visorMesh);
+                            break;
+                            
+                        case 'crown':
+                            const crownBase = new THREE.CylinderGeometry(0.3, 0.35, 0.2, 8);
+                            const crownBaseMesh = new THREE.Mesh(crownBase, material);
+                            group.add(crownBaseMesh);
+                            
+                            // Add crown spikes
+                            for (let i = 0; i < 6; i++) {
+                                const spike = new THREE.ConeGeometry(0.05, 0.2, 6);
+                                const spikeMesh = new THREE.Mesh(spike, material);
+                                const angle = (i / 6) * Math.PI * 2;
+                                spikeMesh.position.set(Math.cos(angle) * 0.3, 0.2, Math.sin(angle) * 0.3);
+                                group.add(spikeMesh);
+                            }
+                            break;
+                    }
+                    break;
+                    
+                case 'clothing':
+                    switch (type.name) {
+                        case 'tshirt':
+                            // T-shirt shape
+                            const bodyGeometry = new THREE.BoxGeometry(0.6, 0.4, 0.1);
+                            const body = new THREE.Mesh(bodyGeometry, material);
+                            group.add(body);
+                            
+                            // Sleeves
+                            const sleeveGeometry = new THREE.BoxGeometry(0.3, 0.15, 0.1);
+                            const leftSleeve = new THREE.Mesh(sleeveGeometry, material);
+                            leftSleeve.position.set(-0.45, 0.1, 0);
+                            group.add(leftSleeve);
+                            
+                            const rightSleeve = new THREE.Mesh(sleeveGeometry, material);
+                            rightSleeve.position.set(0.45, 0.1, 0);
+                            group.add(rightSleeve);
+                            break;
+                            
+                        case 'dress':
+                            const dressTop = new THREE.CylinderGeometry(0.25, 0.35, 0.3, 8);
+                            const dressTopMesh = new THREE.Mesh(dressTop, material);
+                            dressTopMesh.position.y = 0.2;
+                            group.add(dressTopMesh);
+                            
+                            const dressSkirt = new THREE.ConeGeometry(0.5, 0.6, 12);
+                            const dressSkirtMesh = new THREE.Mesh(dressSkirt, material);
+                            dressSkirtMesh.position.y = -0.15;
+                            group.add(dressSkirtMesh);
+                            break;
+                            
+                        case 'jeans':
+                            const waist = new THREE.CylinderGeometry(0.3, 0.3, 0.15, 12);
+                            const waistMesh = new THREE.Mesh(waist, material);
+                            waistMesh.position.y = 0.2;
+                            group.add(waistMesh);
+                            
+                            // Legs
+                            const legGeometry = new THREE.CylinderGeometry(0.12, 0.15, 0.5, 8);
+                            const leftLeg = new THREE.Mesh(legGeometry, material);
+                            leftLeg.position.set(-0.08, -0.1, 0);
+                            group.add(leftLeg);
+                            
+                            const rightLeg = new THREE.Mesh(legGeometry, material);
+                            rightLeg.position.set(0.08, -0.1, 0);
+                            group.add(rightLeg);
+                            break;
+                            
+                        case 'vest':
+                            geometry = new THREE.BoxGeometry(0.5, 0.6, 0.05);
+                            const vest = new THREE.Mesh(geometry, material);
+                            group.add(vest);
+                            break;
+                    }
+                    break;
+                    
+                case 'shoes':
+                    switch (type.name) {
+                        case 'heels':
+                            const heelBase = new THREE.BoxGeometry(0.2, 0.1, 0.4);
+                            const heelBaseMesh = new THREE.Mesh(heelBase, material);
+                            group.add(heelBaseMesh);
+                            
+                            const heel = new THREE.CylinderGeometry(0.02, 0.03, 0.15, 6);
+                            const heelMesh = new THREE.Mesh(heel, material);
+                            heelMesh.position.set(0, -0.1, -0.15);
+                            group.add(heelMesh);
+                            break;
+                            
+                        case 'sneakers':
+                            const sneakerBase = new THREE.BoxGeometry(0.3, 0.15, 0.5);
+                            const sneakerBaseMesh = new THREE.Mesh(sneakerBase, material);
+                            group.add(sneakerBaseMesh);
+                            
+                            const sole = new THREE.BoxGeometry(0.32, 0.05, 0.52);
+                            const soleMesh = new THREE.Mesh(sole, new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
+                            soleMesh.position.y = -0.1;
+                            group.add(soleMesh);
+                            break;
+                            
+                        case 'boots':
+                            const bootBase = new THREE.CylinderGeometry(0.12, 0.15, 0.4, 8);
+                            const bootBaseMesh = new THREE.Mesh(bootBase, material);
+                            group.add(bootBaseMesh);
+                            
+                            const bootFoot = new THREE.BoxGeometry(0.25, 0.1, 0.4);
+                            const bootFootMesh = new THREE.Mesh(bootFoot, material);
+                            bootFootMesh.position.y = -0.25;
+                            group.add(bootFootMesh);
+                            break;
+                    }
+                    break;
+                    
+                case 'jewelry':
+                    switch (type.name) {
+                        case 'ring':
+                            geometry = new THREE.TorusGeometry(0.15, 0.05, 8, 16);
+                            const ring = new THREE.Mesh(geometry, material);
+                            group.add(ring);
+                            
+                            // Add gem
+                            const gem = new THREE.SphereGeometry(0.06, 8, 8);
+                            const gemMesh = new THREE.Mesh(gem, new THREE.MeshLambertMaterial({ color: 0xFF69B4 }));
+                            gemMesh.position.y = 0.08;
+                            group.add(gemMesh);
+                            break;
+                            
+                        case 'necklace':
+                            // Chain links
+                            for (let i = 0; i < 12; i++) {
+                                const link = new THREE.TorusGeometry(0.03, 0.01, 6, 8);
+                                const linkMesh = new THREE.Mesh(link, material);
+                                const angle = (i / 12) * Math.PI * 2;
+                                linkMesh.position.set(Math.cos(angle) * 0.25, Math.sin(angle) * 0.25, 0);
+                                linkMesh.rotation.y = angle;
+                                group.add(linkMesh);
+                            }
+                            
+                            // Pendant
+                            const pendant = new THREE.SphereGeometry(0.08, 8, 8);
+                            const pendantMesh = new THREE.Mesh(pendant, new THREE.MeshLambertMaterial({ color: 0x3498DB }));
+                            pendantMesh.position.y = -0.3;
+                            group.add(pendantMesh);
+                            break;
+                            
+                        case 'diamond':
+                            geometry = new THREE.OctahedronGeometry(0.15);
+                            const diamond = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ 
+                                color: 0xFFFFFF,
+                                transparent: true,
+                                opacity: 0.8
+                            }));
+                            group.add(diamond);
+                            break;
+                            
+                        case 'watch':
+                            const watchBase = new THREE.CylinderGeometry(0.15, 0.15, 0.05, 16);
+                            const watchBaseMesh = new THREE.Mesh(watchBase, material);
+                            group.add(watchBaseMesh);
+                            
+                            const watchFace = new THREE.CylinderGeometry(0.12, 0.12, 0.02, 16);
+                            const watchFaceMesh = new THREE.Mesh(watchFace, new THREE.MeshLambertMaterial({ color: 0x000000 }));
+                            watchFaceMesh.position.y = 0.035;
+                            group.add(watchFaceMesh);
+                            
+                            // Watch hands
+                            const hourHand = new THREE.BoxGeometry(0.02, 0.08, 0.01);
+                            const hourHandMesh = new THREE.Mesh(hourHand, new THREE.MeshLambertMaterial({ color: 0xFFFFFF }));
+                            hourHandMesh.position.y = 0.05;
+                            group.add(hourHandMesh);
+                            break;
+                    }
+                    break;
+                    
+                case 'accessory':
+                    switch (type.name) {
+                        case 'glasses':
+                            // Lenses
+                            const leftLens = new THREE.TorusGeometry(0.15, 0.02, 8, 16);
+                            const leftLensMesh = new THREE.Mesh(leftLens, material);
+                            leftLensMesh.position.x = -0.18;
+                            group.add(leftLensMesh);
+                            
+                            const rightLens = new THREE.TorusGeometry(0.15, 0.02, 8, 16);
+                            const rightLensMesh = new THREE.Mesh(rightLens, material);
+                            rightLensMesh.position.x = 0.18;
+                            group.add(rightLensMesh);
+                            
+                            // Bridge
+                            const bridge = new THREE.CylinderGeometry(0.01, 0.01, 0.1, 6);
+                            const bridgeMesh = new THREE.Mesh(bridge, material);
+                            bridgeMesh.rotation.z = Math.PI / 2;
+                            group.add(bridgeMesh);
+                            break;
+                            
+                        case 'sunglasses':
+                            // Dark lenses
+                            const darkLensMaterial = new THREE.MeshLambertMaterial({ color: 0x111111 });
+                            const leftDarkLens = new THREE.CircleGeometry(0.15, 12);
+                            const leftDarkLensMesh = new THREE.Mesh(leftDarkLens, darkLensMaterial);
+                            leftDarkLensMesh.position.set(-0.18, 0, 0.01);
+                            group.add(leftDarkLensMesh);
+                            
+                            const rightDarkLens = new THREE.CircleGeometry(0.15, 12);
+                            const rightDarkLensMesh = new THREE.Mesh(rightDarkLens, darkLensMaterial);
+                            rightDarkLensMesh.position.set(0.18, 0, 0.01);
+                            group.add(rightDarkLensMesh);
+                            
+                            // Frame
+                            const frame = new THREE.TorusGeometry(0.16, 0.02, 6, 12);
+                            const leftFrameMesh = new THREE.Mesh(frame, material);
+                            leftFrameMesh.position.x = -0.18;
+                            group.add(leftFrameMesh);
+                            
+                            const rightFrameMesh = new THREE.Mesh(frame, material);
+                            rightFrameMesh.position.x = 0.18;
+                            group.add(rightFrameMesh);
+                            break;
+                            
+                        case 'handbag':
+                            geometry = new THREE.BoxGeometry(0.4, 0.3, 0.15);
+                            const bag = new THREE.Mesh(geometry, material);
+                            group.add(bag);
+                            
+                            // Handle
+                            const handle = new THREE.TorusGeometry(0.2, 0.02, 8, 16, Math.PI);
+                            const handleMesh = new THREE.Mesh(handle, material);
+                            handleMesh.position.y = 0.25;
+                            handleMesh.rotation.x = Math.PI;
+                            group.add(handleMesh);
+                            break;
+                            
+                        case 'backpack':
+                            geometry = new THREE.BoxGeometry(0.3, 0.4, 0.2);
+                            const backpack = new THREE.Mesh(geometry, material);
+                            group.add(backpack);
+                            
+                            // Straps
+                            const strap1 = new THREE.CylinderGeometry(0.015, 0.015, 0.5, 8);
+                            const strap1Mesh = new THREE.Mesh(strap1, material);
+                            strap1Mesh.position.set(-0.1, 0.1, -0.1);
+                            group.add(strap1Mesh);
+                            
+                            const strap2 = new THREE.CylinderGeometry(0.015, 0.015, 0.5, 8);
+                            const strap2Mesh = new THREE.Mesh(strap2, material);
+                            strap2Mesh.position.set(0.1, 0.1, -0.1);
+                            group.add(strap2Mesh);
+                            break;
+                            
+                        case 'scarf':
+                            // Scarf as flowing ribbon
+                            const scarf1 = new THREE.BoxGeometry(0.8, 0.05, 0.1);
+                            const scarf1Mesh = new THREE.Mesh(scarf1, material);
+                            scarf1Mesh.rotation.z = Math.PI / 6;
+                            group.add(scarf1Mesh);
+                            
+                            const scarf2 = new THREE.BoxGeometry(0.6, 0.05, 0.1);
+                            const scarf2Mesh = new THREE.Mesh(scarf2, material);
+                            scarf2Mesh.rotation.z = -Math.PI / 4;
+                            scarf2Mesh.position.y = -0.2;
+                            group.add(scarf2Mesh);
+                            break;
+                    }
+                    break;
+                    
+                default:
+                    geometry = new THREE.SphereGeometry(0.2, 8, 8);
+                    const defaultMesh = new THREE.Mesh(geometry, material);
+                    group.add(defaultMesh);
+            }
+            
+            // Add glow effect to all accessories
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: type.color,
+                transparent: true,
+                opacity: 0.2
+            });
+            
+            // Create a larger version for glow
+            const glowGeometry = new THREE.SphereGeometry(0.4, 12, 12);
+            const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+            group.add(glowMesh);
+            
+            group.userData.type = type.name;
+            group.userData.category = type.category;
+            group.userData.points = type.category === 'jewelry' ? 25 : 
+                                   type.category === 'clothing' ? 20 :
+                                   type.category === 'shoes' ? 15 : 10;
+            
+            return group;
+        }
+        
+        function setupEventListeners() {
+            // Keyboard events
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            // Mouse events for camera control
+            document.addEventListener('mousemove', onMouseMove);
+            
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function onKeyDown(event) {
+            switch (event.code) {
+                case 'KeyW':
+                case 'ArrowUp':
+                    keys.forward = true;
+                    break;
+                case 'KeyS':
+                case 'ArrowDown':
+                    keys.backward = true;
+                    break;
+                case 'KeyA':
+                case 'ArrowLeft':
+                    keys.left = true;
+                    break;
+                case 'KeyD':
+                case 'ArrowRight':
+                    keys.right = true;
+                    break;
+                case 'Space':
+                    keys.jump = true;
+                    event.preventDefault();
+                    break;
+                case 'KeyR':
+                    keys.undress = true;
+                    break;
+                case 'KeyM':
+                    keys.music = true;
+                    break;
+            }
+        }
+        
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'KeyW':
+                case 'ArrowUp':
+                    keys.forward = false;
+                    break;
+                case 'KeyS':
+                case 'ArrowDown':
+                    keys.backward = false;
+                    break;
+                case 'KeyA':
+                case 'ArrowLeft':
+                    keys.left = false;
+                    break;
+                case 'KeyD':
+                case 'ArrowRight':
+                    keys.right = false;
+                    break;
+                case 'Space':
+                    keys.jump = false;
+                    break;
+                case 'KeyR':
+                    keys.undress = false;
+                    break;
+                case 'KeyM':
+                    keys.music = false;
+                    break;
+            }
+        }
+        
+        let mouseX = 0, mouseY = 0;
+        function onMouseMove(event) {
+            mouseX = (event.clientX - window.innerWidth / 2) / 100;
+            mouseY = (event.clientY - window.innerHeight / 2) / 100;
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Game boundaries - set area limits
+        const gameArea = {
+            minX: -15,
+            maxX: 15,
+            minZ: -15,
+            maxZ: 15
+        };
+
+        function updateKoala() {
+            if (!koala) return;
+            
+            // Handle movement
+            const moveVector = new THREE.Vector3();
+            
+            if (keys.forward) moveVector.z -= moveSpeed;
+            if (keys.backward) moveVector.z += moveSpeed;
+            if (keys.left) moveVector.x -= moveSpeed;
+            if (keys.right) moveVector.x += moveSpeed;
+            
+            // Store previous position for collision rollback
+            const previousPosition = koala.position.clone();
+            
+            // Apply movement
+            koala.position.add(moveVector);
+            
+            // Check collision with shelves
+            let collisionDetected = false;
+            for (let shelf of shelves) {
+                if (checkCollision(koala.position, shelf)) {
+                    collisionDetected = true;
+                    break;
+                }
+            }
+            
+            // If collision detected, revert to previous position
+            if (collisionDetected) {
+                koala.position.copy(previousPosition);
+            }
+            
+            // Boundary constraints - keep koala within set area
+            koala.position.x = Math.max(gameArea.minX, Math.min(gameArea.maxX, koala.position.x));
+            koala.position.z = Math.max(gameArea.minZ, Math.min(gameArea.maxZ, koala.position.z));
+            
+            // Handle jumping
+            if (keys.jump && !isJumping) {
+                koalaVelocity.y = jumpPower;
+                isJumping = true;
+            }
+            
+            // Handle undressing
+            if (keys.undress) {
+                if (koalaOutfit) {
+                    koala.remove(koalaOutfit);
+                    koalaOutfit = null;
+                }
+                // Reset koala to original gray color
+                resetKoalaColor();
+                keys.undress = false; // Prevent repeated undressing
+                console.log('🐨 Koala reset to original color!');
+            }
+            
+            // Handle music toggle
+            if (keys.music) {
+                toggleBackgroundMusic();
+                keys.music = false; // Prevent repeated toggling
+            }
+            
+            // Apply gravity
+            koalaVelocity.y += gravity;
+            koala.position.y += koalaVelocity.y;
+            
+            // Ground collision
+            if (koala.position.y <= groundLevel + 1) {
+                koala.position.y = groundLevel + 1;
+                koalaVelocity.y = 0;
+                isJumping = false;
+            }
+            
+            // Final boundary enforcement - ensure koala stays within the visible boundaries
+            koala.position.x = Math.max(gameArea.minX, Math.min(gameArea.maxX, koala.position.x));
+            koala.position.z = Math.max(gameArea.minZ, Math.min(gameArea.maxZ, koala.position.z));
+            
+            // Rotate koala based on movement
+            if (moveVector.length() > 0) {
+                koala.rotation.y = Math.atan2(moveVector.x, moveVector.z);
+            }
+        }
+
+        function checkCollision(koalaPos, shelf) {
+            const koalaRadius = 1; // Koala collision radius
+            const distance = new THREE.Vector3(
+                Math.abs(koalaPos.x - shelf.position.x),
+                0,
+                Math.abs(koalaPos.z - shelf.position.z)
+            );
+            
+            return (distance.x < (shelf.size.width / 2 + koalaRadius) && 
+                    distance.z < (shelf.size.depth / 2 + koalaRadius));
+        }
+
+        function dressUpKoala(dressColor) {
+            // Remove current outfit if exists
+            if (koalaOutfit) {
+                koala.remove(koalaOutfit);
+            }
+            
+            // Create new dress for koala
+            koalaOutfit = new THREE.Group();
+            
+            // Dress body (scaled for koala)
+            const bodyGeometry = new THREE.ConeGeometry(0.4, 1.2, 8);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: dressColor });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = -0.2;
+            koalaOutfit.add(body);
+            
+            // Dress top
+            const topGeometry = new THREE.CylinderGeometry(0.2, 0.25, 0.3, 8);
+            const topMaterial = new THREE.MeshLambertMaterial({ color: dressColor });
+            const top = new THREE.Mesh(topGeometry, topMaterial);
+            top.position.y = 0.5;
+            koalaOutfit.add(top);
+            
+            // Add dress to koala
+            koala.add(koalaOutfit);
+            
+            console.log(`🐨 Koala is now wearing a dress!`);
+        }
+
+        function checkDressInteraction() {
+            if (!koala) return;
+            
+            console.log(`Checking dress interaction... Koala at: ${koala.position.x.toFixed(2)}, ${koala.position.z.toFixed(2)}`);
+            
+            for (let i = 0; i < dresses.length; i++) {
+                const dress = dresses[i];
+                if (!dress.available) continue;
+                
+                const distance = koala.position.distanceTo(dress.position);
+                console.log(`Distance to dress ${i}: ${distance.toFixed(2)}`);
+                
+                if (distance < 3.0) { // Increased interaction range
+                    console.log(`🎀 Close enough to dress! Dressing up koala...`);
+                    
+                    // Change koala color to match dress (no rainbow dresses)
+                    changeKoalaColor(dress.color);
+                    
+                    // Remove dress from shelf
+                    scene.remove(dress.mesh);
+                    dress.available = false;
+                    
+                    // Update score (rainbow dress gives more points!)
+                    const points = 50; // All dresses worth 50 points
+                    score += points;
+                    document.getElementById('score').textContent = score;
+                    
+                    console.log(`🎀 Picked up dress! Score: ${score}`);
+                    break; // Only pick up one dress at a time
+                }
+            }
+        }
+
+        function changeKoalaColor(dressColor) {
+            if (!koala) return;
+            
+            // Change the koala's body color to match the dress but keep eyes black
+            koala.children.forEach((child, index) => {
+                if (child.material) {
+                    // Keep eyes black (usually the first two children are the eyes)
+                    if (index === 1 || index === 2) { // Eyes are typically children 1 and 2
+                        child.material.color.setHex(0x000000); // Keep eyes black
+                    } else {
+                        child.material.color.setHex(dressColor);
+                    }
+                }
+            });
+            console.log(`Changed koala color to: #${dressColor.toString(16)} (eyes stay black)`);
+        }
+
+        function resetKoalaColor() {
+            if (!koala) return;
+            
+            // Reset koala to original gray color but keep eyes black
+            koala.children.forEach((child, index) => {
+                if (child.material) {
+                    if (index === 1 || index === 2) { // Eyes stay black
+                        child.material.color.setHex(0x000000);
+                    } else {
+                        child.material.color.setHex(0x888888); // Original gray color
+                    }
+                }
+            });
+            console.log('Reset koala to original color (eyes stay black)');
+        }
+
+        // Yoga meditation music functionality
+        let audioContext = null;
+        let musicPlaying = false;
+        let meditationNodes = [];
+
+        function initializeMusic() {
+            try {
+                // Create Web Audio context for generating ocean wave sounds
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                createNoiseBuffer();
+                console.log('� Ocean waves audio initialized');
+                
+                // Try to auto-start ocean waves immediately
+                setTimeout(() => {
+                    console.log('🌊 Attempting to start ocean waves automatically...');
+                    startBackgroundMusic();
+                }, 100);
+            } catch (e) {
+                console.log('� Web Audio not supported');
+            }
+        }
+
+        function createMeditationTone(frequency, startTime, duration, volume = 0.08) {
+            if (!audioContext) return null;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            const filterNode = audioContext.createBiquadFilter();
+            
+            // Use sine wave for pure, calming tones
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, startTime);
+            
+            // Low-pass filter for smoother sound
+            filterNode.type = 'lowpass';
+            filterNode.frequency.setValueAtTime(2000, startTime);
+            
+            // Gentle fade in and out
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(volume, startTime + 2);
+            gainNode.gain.linearRampToValueAtTime(volume * 0.7, startTime + duration - 2);
+            gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+            
+            // Connect audio nodes
+            oscillator.connect(filterNode);
+            filterNode.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+            
+            return { oscillator, gainNode, filterNode };
+        }
+
+        function startBackgroundMusic() {
+            if (!audioContext || musicPlaying) return;
+            
+            // Resume audio context (required by many browsers)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            musicPlaying = true;
+            playMeditationSequence();
+            
+            console.log('🧘 Calming yoga meditation music started');
+        }
+
+        function playMeditationSequence() {
+            if (!musicPlaying || !audioContext) return;
+            
+            // Healing frequencies used in meditation (Hz)
+            const healingFreqs = [
+                396, // Root Chakra - Grounding
+                417, // Sacral Chakra - Change
+                528, // Heart Chakra - Love/Healing
+                639, // Throat Chakra - Communication  
+                741, // Third Eye - Intuition
+                852  // Crown Chakra - Spirituality
+            ];
+            
+            const currentTime = audioContext.currentTime;
+            
+            // Create overlapping meditation tones
+            for (let i = 0; i < 3; i++) {
+                const freq = healingFreqs[Math.floor(Math.random() * healingFreqs.length)];
+                const startTime = currentTime + i * 3;
+                const duration = 8 + Math.random() * 4; // 8-12 second tones
+                const volume = 0.06 + Math.random() * 0.04; // Soft volume variation
+                
+                const meditationTone = createMeditationTone(freq, startTime, duration, volume);
+                if (meditationTone) {
+                    meditationNodes.push(meditationTone);
+                }
+            }
+            
+            // Schedule next meditation sequence
+            setTimeout(() => {
+                if (musicPlaying) playMeditationSequence();
+            }, 10000 + Math.random() * 5000); // Every 10-15 seconds
+        }
+            
+            // Resume audio context (required by many browsers)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            musicPlaying = true;
+            
+            // Create multiple wave layers for richer ocean sound
+            for (let i = 0; i < 4; i++) { // Increased from 3 to 4 layers
+                const waveSound = createWaveSound();
+                if (waveSound) {
+                    waveNodes.push(waveSound);
+                }
+            }
+            
+            console.log('🌊 Louder ocean waves started - Volume: 25%');
+        
+
+        function stopBackgroundMusic() {
+            meditationNodes.forEach(node => {
+                if (node.oscillator) {
+                    try {
+                        node.oscillator.stop();
+                    } catch(e) {}
+                }
+            });
+            meditationNodes = [];
+            musicPlaying = false;
+        }
+
+        function toggleBackgroundMusic() {
+            if (!audioContext) {
+                initializeMusic();
+                return;
+            }
+            
+            if (musicPlaying) {
+                stopBackgroundMusic();
+                console.log('� Ocean waves paused');
+            } else {
+                startBackgroundMusic();
+            }
+        }
+        
+        function updateCamera() {
+            if (!koala) return;
+            
+            // Third-person camera following koala
+            const idealOffset = new THREE.Vector3(0, 5, 8);
+            const idealLookAt = new THREE.Vector3(koala.position.x, koala.position.y + 1, koala.position.z);
+            
+            // Apply koala rotation to camera offset
+            idealOffset.applyEuler(new THREE.Euler(0, koala.rotation.y, 0));
+            
+            const idealPosition = koala.position.clone().add(idealOffset);
+            
+            // Smooth camera movement
+            camera.position.lerp(idealPosition, 0.1);
+            camera.lookAt(idealLookAt);
+            
+            // Add mouse look
+            camera.position.x += mouseX * 0.5;
+            camera.position.y += mouseY * 0.3;
+        }
+        
+        function updateAccessories() {
+            accessories.forEach((accessory, index) => {
+                // Floating animation
+                const time = clock.getElapsedTime();
+                accessory.position.y = accessory.userData.originalY + 
+                    Math.sin(time * accessory.userData.floatSpeed + accessory.userData.floatOffset) * 0.5;
+                
+                // Rotation animation
+                accessory.rotation.y += 0.01;
+                
+                // Collision detection with koala
+                if (koala) {
+                    const distance = koala.position.distanceTo(accessory.position);
+                    if (distance < 1.5) {
+                        // Collect accessory
+                        scene.remove(accessory);
+                        accessories.splice(index, 1);
+                        
+                        // Update score
+                        score += accessory.userData.points;
+                        accessoryCount++;
+                        updateUI();
+                        
+                        // Create collection effect
+                        createCollectionEffect(accessory.position);
+                        
+                        console.log(`Collected ${accessory.userData.type}! Score: ${score}`);
+                    }
+                }
+            });
+            
+            // Spawn new accessories if running low
+            if (accessories.length < 15) {
+                const accessoryTypes = [
+                    { emoji: '👒', color: 0x8B4513, name: 'sunhat', category: 'hat' },
+                    { emoji: '🎩', color: 0x000000, name: 'tophat', category: 'hat' },
+                    { emoji: '🧢', color: 0x0066CC, name: 'cap', category: 'hat' },
+                    { emoji: '👑', color: 0xFFD700, name: 'crown', category: 'hat' },
+                    { emoji: '�', color: 0xFF6B6B, name: 'tshirt', category: 'clothing' },
+                    { emoji: '👗', color: 0xFF69B4, name: 'dress', category: 'clothing' },
+                    { emoji: '👖', color: 0x4ECDC4, name: 'jeans', category: 'clothing' },
+                    { emoji: '🦺', color: 0xFF9500, name: 'vest', category: 'clothing' },
+                    { emoji: '�👓', color: 0x333333, name: 'glasses', category: 'accessory' },
+                    { emoji: '🕶️', color: 0x000000, name: 'sunglasses', category: 'accessory' },
+                    { emoji: '👜', color: 0xFF69B4, name: 'handbag', category: 'accessory' },
+                    { emoji: '🎒', color: 0x8E44AD, name: 'backpack', category: 'accessory' },
+                    { emoji: '👠', color: 0xFF0000, name: 'heels', category: 'shoes' },
+                    { emoji: '�', color: 0x2ECC71, name: 'sneakers', category: 'shoes' },
+                    { emoji: '🥾', color: 0x8B4513, name: 'boots', category: 'shoes' },
+                    { emoji: '�💍', color: 0xFFD700, name: 'ring', category: 'jewelry' },
+                    { emoji: '�', color: 0xE74C3C, name: 'necklace', category: 'jewelry' },
+                    { emoji: '💎', color: 0x3498DB, name: 'diamond', category: 'jewelry' },
+                    { emoji: '⌚', color: 0x95A5A6, name: 'watch', category: 'jewelry' },
+                    { emoji: '🧣', color: 0xE67E22, name: 'scarf', category: 'accessory' }
+                ];
+                
+                const newAccessory = createSingleAccessory(
+                    accessoryTypes[Math.floor(Math.random() * accessoryTypes.length)]
+                );
+                
+                // Position within bounded game area
+                newAccessory.position.set(
+                    (Math.random() - 0.5) * 28, // -14 to 14 (within boundaries)
+                    2 + Math.random() * 3,
+                    (Math.random() - 0.5) * 28  // -14 to 14 (within boundaries)
+                );
+                
+                newAccessory.userData.originalY = newAccessory.position.y;
+                newAccessory.userData.floatSpeed = 0.02 + Math.random() * 0.02;
+                newAccessory.userData.floatOffset = Math.random() * Math.PI * 2;
+                
+                accessories.push(newAccessory);
+                scene.add(newAccessory);
+            }
+        }
+        
+        function createCollectionEffect(position) {
+            // Create sparkle particles
+            for (let i = 0; i < 10; i++) {
+                const sparkleGeometry = new THREE.SphereGeometry(0.02, 4, 4);
+                const sparkleMaterial = new THREE.MeshBasicMaterial({ 
+                    color: new THREE.Color().setHSL(Math.random(), 1, 0.5)
+                });
+                const sparkle = new THREE.Mesh(sparkleGeometry, sparkleMaterial);
+                
+                sparkle.position.copy(position);
+                sparkle.position.add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ));
+                
+                scene.add(sparkle);
+                
+                // Animate sparkle
+                const targetPosition = sparkle.position.clone();
+                targetPosition.add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 4,
+                    Math.random() * 3,
+                    (Math.random() - 0.5) * 4
+                ));
+                
+                // Remove sparkle after animation
+                setTimeout(() => {
+                    scene.remove(sparkle);
+                }, 1000);
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('accessories').textContent = accessoryCount;
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const delta = clock.getDelta();
+            
+            // Update game objects
+            updateKoala();
+            updateCamera();
+            updateAccessories();
+            checkDressInteraction();
+            
+            // Render scene
+            renderer.render(scene, camera);
+        }
+        
+        // Start the game with a delay to ensure THREE.js loads
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                init();
+                
+                // Ensure music starts on first user interaction
+                document.addEventListener('click', function() {
+                    console.log('🌊 Click detected - starting ocean waves');
+                    if (!musicPlaying && audioContext) {
+                        startBackgroundMusic();
+                    }
+                }, { once: true });
+                
+                // Also try to start music on any key press
+                document.addEventListener('keydown', function() {
+                    console.log('🌊 Key press detected - starting ocean waves');
+                    if (!musicPlaying && audioContext) {
+                        startBackgroundMusic();
+                    }
+                }, { once: true });
+                
+            }, 500); // Wait 500ms for libraries to load
+        });
+    </script>
+</body>
+</html>

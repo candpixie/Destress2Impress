@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎤 Microphone & Breathing Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+        .volume-meter {
+            width: 100%;
+            height: 40px;
+            background: #333;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .volume-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #FFC107, #FF5722);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #4CAF50; }
+        .status.warning { background: #FF9800; }
+        .status.error { background: #F44336; }
+        .breathing-indicator {
+            font-size: 2em;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+            background: #4CAF50;
+            color: white;
+            transition: background 0.3s;
+        }
+        button:hover { background: #45a049; }
+        button:disabled { background: #666; cursor: not-allowed; }
+        .values {
+            font-family: 'Courier New', monospace;
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Microphone & Breathing Detection Test</h1>
+        
+        <div class="test-section">
+            <h3>Step 1: Microphone Access</h3>
+            <button onclick="testMicrophone()">🎤 Test Microphone Access</button>
+            <div id="micStatus" class="status"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 2: Audio Level Monitor</h3>
+            <p>Watch the volume bar while you breathe, speak, or make sounds:</p>
+            <div class="volume-meter">
+                <div id="volumeBar" class="volume-bar"></div>
+            </div>
+            <div id="volumeValue" class="values">Volume: 0</div>
+            <button onclick="startMonitoring()" id="monitorBtn">▶️ Start Audio Monitor</button>
+            <button onclick="stopMonitoring()" disabled id="stopBtn">⏸️ Stop Monitor</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 3: Breathing Pattern Test</h3>
+            <div class="breathing-indicator" id="breathingIndicator">🫁 Ready for breathing test</div>
+            <button onclick="startBreathingTest()" id="breathingBtn">💨 Start Breathing Test</button>
+            <div id="breathingValues" class="values">
+                Baseline: --<br>
+                Current Volume: --<br>
+                Breathing State: --<br>
+                Sensitivity: 1.0
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔧 Troubleshooting Tips</h3>
+            <ul>
+                <li><strong>No microphone access:</strong> Check browser permissions, try Chrome</li>
+                <li><strong>Volume bar not moving:</strong> Check Windows microphone settings</li>
+                <li><strong>Too sensitive:</strong> Reduce background noise, sit further from mic</li>
+                <li><strong>Not sensitive enough:</strong> Breathe closer to microphone</li>
+                <li><strong>Erratic readings:</strong> Close other audio apps, reduce fan noise</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let microphone = null;
+        let analyser = null;
+        let dataArray = null;
+        let monitoring = false;
+        let breathingTest = false;
+        let baseline = 0;
+        let samples = [];
+        
+        async function testMicrophone() {
+            const statusEl = document.getElementById('micStatus');
+            
+            try {
+                statusEl.className = 'status warning';
+                statusEl.textContent = '🔍 Requesting microphone access...';
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+                
+                statusEl.className = 'status success';
+                statusEl.textContent = '✅ Microphone access granted! Ready for audio monitoring.';
+                
+                // Store stream for later use
+                window.audioStream = stream;
+                
+            } catch (error) {
+                statusEl.className = 'status error';
+                statusEl.textContent = `❌ Microphone access denied: ${error.message}`;
+                console.error('Microphone access error:', error);
+            }
+        }
+        
+        async function startMonitoring() {
+            if (!window.audioStream) {
+                await testMicrophone();
+            }
+            
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                microphone = audioContext.createMediaStreamSource(window.audioStream);
+                analyser = audioContext.createAnalyser();
+                
+                analyser.fftSize = 256;
+                analyser.smoothingTimeConstant = 0.8;
+                
+                microphone.connect(analyser);
+                
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                monitoring = true;
+                document.getElementById('monitorBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                
+                monitorAudio();
+                
+            } catch (error) {
+                console.error('Audio monitoring error:', error);
+            }
+        }
+        
+        function monitorAudio() {
+            if (!monitoring) return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Calculate RMS volume (similar to breathing detection)
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i] * dataArray[i];
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            const volume = Math.min(100, (rms / 128) * 100);
+            
+            // Update volume bar
+            document.getElementById('volumeBar').style.width = volume + '%';
+            document.getElementById('volumeValue').textContent = `Volume: ${rms.toFixed(2)} | Percentage: ${volume.toFixed(1)}%`;
+            
+            // Update breathing test if active
+            if (breathingTest) {
+                updateBreathingTest(rms);
+            }
+            
+            requestAnimationFrame(monitorAudio);
+        }
+        
+        function stopMonitoring() {
+            monitoring = false;
+            breathingTest = false;
+            
+            if (audioContext) {
+                audioContext.close();
+            }
+            
+            document.getElementById('monitorBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('breathingBtn').textContent = '💨 Start Breathing Test';
+        }
+        
+        async function startBreathingTest() {
+            if (!monitoring) {
+                await startMonitoring();
+            }
+            
+            const btn = document.getElementById('breathingBtn');
+            if (breathingTest) {
+                breathingTest = false;
+                btn.textContent = '💨 Start Breathing Test';
+                return;
+            }
+            
+            breathingTest = true;
+            btn.textContent = '⏸️ Stop Breathing Test';
+            
+            // Start calibration
+            document.getElementById('breathingIndicator').textContent = '🔄 Calibrating... breathe normally';
+            samples = [];
+            
+            // Collect baseline for 5 seconds
+            setTimeout(() => {
+                if (samples.length > 0) {
+                    baseline = samples.reduce((a, b) => a + b) / samples.length;
+                    document.getElementById('breathingIndicator').textContent = '💨 Breathe and watch the detection!';
+                }
+            }, 5000);
+        }
+        
+        function updateBreathingTest(volume) {
+            if (samples.length < 100) {
+                samples.push(volume);
+                return;
+            }
+            
+            const inhaleThreshold = baseline * 1.5;
+            const exhaleThreshold = baseline * 0.7;
+            
+            let state = 'Normal';
+            let indicator = '🫁 Normal breathing';
+            
+            if (volume > inhaleThreshold) {
+                state = 'Inhaling';
+                indicator = '⬆️ INHALE - Bird would go UP';
+            } else if (volume < exhaleThreshold) {
+                state = 'Exhaling';  
+                indicator = '⬇️ EXHALE - Bird would go DOWN';
+            }
+            
+            document.getElementById('breathingIndicator').textContent = indicator;
+            document.getElementById('breathingValues').innerHTML = `
+                Baseline: ${baseline.toFixed(2)}<br>
+                Current Volume: ${volume.toFixed(2)}<br>
+                Breathing State: ${state}<br>
+                Inhale Threshold: ${inhaleThreshold.toFixed(2)}<br>
+                Exhale Threshold: ${exhaleThreshold.toFixed(2)}
+            `;
+        }
+        
+        // Auto-start microphone test on page load
+        window.onload = () => {
+            setTimeout(testMicrophone, 1000);
+        };
+    </script>
+</body>
+</html>

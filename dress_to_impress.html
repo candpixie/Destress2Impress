@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👗 Dress to Impress - Fashion Store</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(45deg, #ff6b9d, #f06292, #ec407a, #e91e63);
+            background-size: 400% 400%;
+            animation: gradientShift 8s ease infinite;
+            overflow-x: hidden;
+            height: 100vh;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1500px;
+            perspective-origin: 50% 50%;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        
+        .store-header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .store-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b9d, #e91e63, #673ab7);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .coins-display {
+            display: flex;
+            align-items: center;
+            background: #ffd700;
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .coins-display:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
+        }
+        
+        .coins-display span {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .store-floor {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 80px;
+            display: flex;
+            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(255, 107, 157, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(233, 30, 99, 0.1) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 25%, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.05) 50%, transparent 50%);
+            background-size: 200px 200px, 300px 300px, 50px 50px;
+            animation: floorShimmer 10s ease-in-out infinite;
+        }
+        
+        @keyframes floorShimmer {
+            0%, 100% {
+                background-position: 0% 0%, 100% 100%, 0px 0px;
+            }
+            50% {
+                background-position: 100% 100%, 0% 0%, 25px 25px;
+            }
+        }
+        
+        .store-section {
+            min-width: 100vw;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 50px;
+            transform-style: preserve-3d;
+            transform: rotateY(0deg) translateZ(0px);
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .store-section:nth-child(even) {
+            transform: rotateY(-5deg) translateZ(-50px);
+        }
+        
+        .store-section:nth-child(odd) {
+            transform: rotateY(5deg) translateZ(-50px);
+        }
+        
+        .avatar-area {
+            width: 40%;
+            height: 80%;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            backdrop-filter: blur(10px);
+            transform: translateZ(100px) rotateY(-10deg);
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        
+        .avatar-area:hover {
+            transform: translateZ(150px) rotateY(-15deg) scale(1.05);
+        }
+        
+        .avatar-display {
+            width: 300px;
+            height: 400px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            perspective: 800px;
+        }
+        
+        .avatar {
+            width: 200px;
+            height: 300px;
+            position: relative;
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+        
+        .avatar-base {
+            width: 100%;
+            height: 100%;
+            border-radius: 50% 50% 30% 30%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6em;
+            background: linear-gradient(135deg, #fff, #f5f5f5);
+            box-shadow: 
+                0 10px 25px rgba(0, 0, 0, 0.1),
+                0 5px 15px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.5s ease;
+            transform-style: preserve-3d;
+            animation: gentleBreath 3s ease-in-out infinite;
+        }
+        
+        .avatar-3d {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: all 0.5s ease;
+        }
+        
+        /* 3D Animal Parts */
+        .animal-face {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle at 30% 30%, #ffa726, #ff9800);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) translateZ(40px);
+            box-shadow: 
+                0 10px 20px rgba(0, 0, 0, 0.2),
+                inset 0 5px 10px rgba(255, 255, 255, 0.3);
+        }
+        
+        .koala-face {
+            background: radial-gradient(circle at 30% 30%, #9e9e9e, #757575);
+        }
+        
+        .monkey-face {
+            background: radial-gradient(circle at 30% 30%, #8d6e63, #5d4037);
+        }
+        
+        .puppy-face {
+            background: radial-gradient(circle at 30% 30%, #ffc107, #ff8f00);
+        }
+        
+        .cat-face {
+            background: radial-gradient(circle at 30% 30%, #ff7043, #d84315);
+        }
+        
+        .frog-face {
+            background: radial-gradient(circle at 30% 30%, #66bb6a, #388e3c);
+        }
+        
+        .rabbit-face {
+            background: radial-gradient(circle at 30% 30%, #f8bbd9, #e91e63);
+        }
+        
+        /* Animal Ears */
+        .animal-ear {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            background: inherit;
+            border-radius: 50% 50% 20% 20%;
+            transform: translateZ(20px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .animal-ear.left {
+            top: -20px;
+            left: 15px;
+            transform: translateZ(20px) rotate(-30deg);
+        }
+        
+        .animal-ear.right {
+            top: -20px;
+            right: 15px;
+            transform: translateZ(20px) rotate(30deg);
+        }
+        
+        /* Special ears for different animals */
+        .rabbit-ear {
+            height: 80px;
+            border-radius: 60% 60% 40% 40%;
+        }
+        
+        .cat-ear {
+            width: 35px;
+            height: 40px;
+            border-radius: 80% 80% 20% 20%;
+        }
+        
+        /* Animal Eyes */
+        .animal-eye {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #333 40%, #fff 45%);
+            border-radius: 50%;
+            top: 40%;
+            transform: translateZ(50px);
+            animation: blink 4s ease-in-out infinite;
+        }
+        
+        .animal-eye.left {
+            left: 25%;
+        }
+        
+        .animal-eye.right {
+            right: 25%;
+        }
+        
+        @keyframes blink {
+            0%, 90%, 100% { transform: translateZ(50px) scaleY(1); }
+            95% { transform: translateZ(50px) scaleY(0.1); }
+        }
+        
+        /* Animal Nose */
+        .animal-nose {
+            position: absolute;
+            width: 12px;
+            height: 8px;
+            background: #333;
+            border-radius: 50%;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%) translateZ(60px);
+        }
+        
+        /* Animal Mouth */
+        .animal-mouth {
+            position: absolute;
+            width: 30px;
+            height: 15px;
+            border: 2px solid #333;
+            border-top: none;
+            border-radius: 0 0 30px 30px;
+            top: 65%;
+            left: 50%;
+            transform: translate(-50%, -50%) translateZ(45px);
+            background: transparent;
+        }
+        
+        /* Animal Body Shadow */
+        .animal-shadow {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%) translateZ(-10px);
+            width: 150px;
+            height: 30px;
+            background: radial-gradient(ellipse, rgba(0, 0, 0, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(5px);
+        }
+        
+        .avatar-base:hover {
+            transform: scale(1.1);
+            box-shadow: 
+                0 15px 30px rgba(0, 0, 0, 0.2),
+                0 5px 20px rgba(255, 107, 157, 0.3);
+        }
+        
+        @keyframes gentleBreath {
+            0%, 100% { 
+                transform: scale(1);
+            }
+            50% { 
+                transform: scale(1.02);
+            }
+        }
+        
+        .avatar-base.walking {
+            animation: naturalWalk 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes naturalWalk {
+            0% { 
+                transform: translateX(-15px) rotate(-3deg);
+            }
+            25% { 
+                transform: translateX(-5px) rotate(-1deg) scale(1.01);
+            }
+            50% { 
+                transform: translateX(15px) rotate(3deg);
+            }
+            75% { 
+                transform: translateX(5px) rotate(1deg) scale(1.01);
+            }
+            100% { 
+                transform: translateX(-15px) rotate(-3deg);
+            }
+        }
+        
+        .avatar-base.celebrating {
+            animation: happyDance 2s ease-in-out;
+        }
+        
+        @keyframes happyDance {
+            0% { 
+                transform: scale(1) rotate(0deg);
+            }
+            25% { 
+                transform: scale(1.1) rotate(10deg);
+            }
+            50% { 
+                transform: scale(1.2) rotate(-10deg);
+            }
+            75% { 
+                transform: scale(1.1) rotate(10deg);
+            }
+            100% { 
+                transform: scale(1) rotate(0deg);
+            }
+        }
+        
+        .clothing-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            border-radius: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            z-index: 10;
+        }
+        
+        /* Hat positioning */
+        #hat-layer, #hat-preview {
+            top: -20px;
+            font-size: 1.2em;
+            z-index: 15;
+        }
+        
+        /* Shirt positioning */
+        #shirt-layer, #shirt-preview {
+            top: 40px;
+            font-size: 1em;
+            z-index: 12;
+        }
+        
+        /* Pants positioning */
+        #pants-layer, #pants-preview {
+            top: 100px;
+            font-size: 1em;
+            z-index: 11;
+        }
+        
+        /* Shoes positioning */
+        #shoes-layer, #shoes-preview {
+            top: 200px;
+            font-size: 0.8em;
+            z-index: 10;
+        }
+        
+        /* Accessory positioning */
+        #accessory-layer {
+            top: 20px;
+            right: -30px;
+            font-size: 0.7em;
+            z-index: 16;
+        }
+        
+        .avatar-selector {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .avatar-option {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .avatar-option:hover {
+            transform: scale(1.1);
+            border-color: #ff6b9d;
+            box-shadow: 0 6px 20px rgba(255, 107, 157, 0.3);
+        }
+        
+        .avatar-option.selected {
+            border-color: #e91e63;
+            background: #fff;
+            transform: scale(1.1);
+        }
+        
+        .clothing-area {
+            width: 55%;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            transform: translateZ(50px) rotateY(10deg);
+            transform-style: preserve-3d;
+            transition: transform 0.5s ease;
+        }
+        
+        .clothing-area:hover {
+            transform: translateZ(100px) rotateY(15deg) scale(1.02);
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5em;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+        
+        .clothing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .clothing-item {
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transform: translateZ(20px) rotateX(5deg);
+            transform-style: preserve-3d;
+        }
+        
+        .clothing-item:hover {
+            transform: translateZ(80px) rotateX(-10deg) rotateY(15deg) scale(1.1);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 1);
+        }
+        
+        .clothing-item:nth-child(odd) {
+            transform: translateZ(30px) rotateX(8deg) rotateY(-3deg);
+        }
+        
+        .clothing-item:nth-child(even) {
+            transform: translateZ(10px) rotateX(2deg) rotateY(3deg);
+        }
+        
+        .clothing-item.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            position: relative;
+        }
+        
+        .clothing-item.locked::after {
+            content: '🔒';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.5em;
+            color: #ff6b9d;
+        }
+        
+        .clothing-item .icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        
+        .clothing-item .name {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+        }
+        
+        .clothing-item .price {
+            font-size: 0.8em;
+            color: #ffd700;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .store-navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+        
+        .nav-button {
+            padding: 15px 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .nav-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            background: #fff;
+        }
+        
+        .nav-button.active {
+            background: linear-gradient(45deg, #ff6b9d, #e91e63);
+            color: white;
+        }
+        
+        .puzzle-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .puzzle-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: puzzleAppear 0.5s ease-out;
+        }
+        
+        @keyframes puzzleAppear {
+            from { 
+                transform: scale(0.7) translateY(50px);
+                opacity: 0;
+            }
+            to { 
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .puzzle-title {
+            font-size: 2em;
+            color: #e91e63;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .puzzle-question {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        
+        .puzzle-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .puzzle-option {
+            padding: 15px 25px;
+            background: #f8f8f8;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+        }
+        
+        .puzzle-option:hover {
+            background: #ff6b9d;
+            color: white;
+            border-color: #ff6b9d;
+            transform: scale(1.05);
+        }
+        
+        .puzzle-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+        
+        .puzzle-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .puzzle-btn.submit {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .puzzle-btn.cancel {
+            background: #f44336;
+            color: white;
+        }
+        
+        .puzzle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 100px;
+            right: 30px;
+            padding: 20px 30px;
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.5s ease;
+            z-index: 1500;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .floating-hearts {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .heart {
+            position: absolute;
+            color: #ff6b9d;
+            font-size: 2em;
+            animation: floatUp 3s ease-in-out infinite;
+            opacity: 0;
+        }
+        
+        @keyframes floatUp {
+            0% { 
+                opacity: 1;
+                transform: translateY(0) rotate(0deg);
+            }
+            100% { 
+                opacity: 0;
+                transform: translateY(-100px) rotate(360deg);
+            }
+        }
+        
+        .sparkle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle, #ffd700, #fff);
+            border-radius: 50%;
+            animation: sparkleAnimation 2s ease-in-out infinite;
+        }
+        
+        @keyframes sparkleAnimation {
+            0%, 100% { 
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        /* Inventory Modal */
+        .inventory-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .inventory-content {
+            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .inventory-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ff6b9d;
+            padding-bottom: 15px;
+        }
+        
+        .inventory-title {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ff6b9d;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .close-inventory {
+            font-size: 2em;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+        }
+        
+        .close-inventory:hover {
+            color: #ff6b9d;
+        }
+        
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .inventory-item {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .inventory-item:hover {
+            border-color: #ff6b9d;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 157, 0.2);
+        }
+        
+        .inventory-item.equipped {
+            border-color: #4CAF50;
+            background: linear-gradient(45deg, #e8f5e8, #f1f9f1);
+        }
+        
+        .inventory-item-emoji {
+            font-size: 2em;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .inventory-item-name {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .inventory-empty {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.2em;
+        }
+        
+        .equip-button {
+            background: #ff6b9d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        
+        .equip-button:hover {
+            background: #f06292;
+        }
+        
+        .equipped-text {
+            color: #4CAF50;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header -->
+        <div class="store-header">
+            <div class="store-title">👗 Dress to Impress</div>
+            <div class="coins-display" onclick="showInventory()">
+                <span>💰</span>
+                <span id="coin-count">100</span>
+            </div>
+        </div>
+
+        <!-- Store Floor -->
+        <div class="store-floor" id="store-floor">
+            
+            <!-- Avatar Selection Section -->
+            <div class="store-section" id="avatar-section">
+                <div class="avatar-area">
+                    <h2 style="color: #e91e63; margin-bottom: 20px;">Choose Your Character</h2>
+                    <div class="avatar-display">
+                        <div class="avatar">
+                            <div class="avatar-base" id="current-avatar">
+                                <div class="avatar-3d" id="avatar-3d-container">
+                                    <div class="animal-face koala-face">
+                                        <div class="animal-ear left koala-ear"></div>
+                                        <div class="animal-ear right koala-ear"></div>
+                                        <div class="animal-eye left"></div>
+                                        <div class="animal-eye right"></div>
+                                        <div class="animal-nose"></div>
+                                        <div class="animal-mouth"></div>
+                                    </div>
+                                    <div class="animal-shadow"></div>
+                                </div>
+                            </div>
+                            <!-- Clothing layers will be added here -->
+                            <div class="clothing-layer" id="hat-layer"></div>
+                            <div class="clothing-layer" id="shirt-layer"></div>
+                            <div class="clothing-layer" id="pants-layer"></div>
+                            <div class="clothing-layer" id="shoes-layer"></div>
+                            <div class="clothing-layer" id="accessory-layer"></div>
+                        </div>
+                    </div>
+                    <div class="avatar-selector">
+                        <div class="avatar-option selected" data-avatar="🐨">🐨</div>
+                        <div class="avatar-option" data-avatar="🐵">🐵</div>
+                        <div class="avatar-option" data-avatar="🐶">🐶</div>
+                        <div class="avatar-option" data-avatar="🐱">🐱</div>
+                        <div class="avatar-option" data-avatar="🐸">🐸</div>
+                        <div class="avatar-option" data-avatar="🐰">🐰</div>
+                    </div>
+                </div>
+                <div class="clothing-area">
+                    <div class="section-title">👤 Choose Your Style</div>
+                    <div class="clothing-grid">
+                        <div class="clothing-item" onclick="showNotification('Select a category to start shopping!')">
+                            <div class="icon">👕</div>
+                            <div class="name">Shirts</div>
+                        </div>
+                        <div class="clothing-item" onclick="showNotification('Select a category to start shopping!')">
+                            <div class="icon">👖</div>
+                            <div class="name">Pants</div>
+                        </div>
+                        <div class="clothing-item" onclick="showNotification('Select a category to start shopping!')">
+                            <div class="icon">👟</div>
+                            <div class="name">Shoes</div>
+                        </div>
+                        <div class="clothing-item" onclick="showNotification('Select a category to start shopping!')">
+                            <div class="icon">👒</div>
+                            <div class="name">Hats</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hats Section -->
+            <div class="store-section" id="hats-section">
+                <div class="avatar-area">
+                    <h2 style="color: #e91e63; margin-bottom: 20px;">Your Avatar</h2>
+                    <div class="avatar-display">
+                        <div class="avatar">
+                            <div class="avatar-base" id="hat-avatar">
+                                <div class="avatar-3d">
+                                    <div class="animal-face koala-face" style="width: 80px; height: 80px;">
+                                        <div class="animal-ear left" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-ear right" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-eye left" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-eye right" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-nose" style="width: 8px; height: 6px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="clothing-layer" id="hat-preview"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clothing-area">
+                    <div class="section-title">🎩 Hat Shop</div>
+                    <div class="clothing-grid">
+                        <div class="clothing-item" onclick="requiresPuzzle('hat', '🎩', 'Top Hat', 'What do gentlemen wear on formal occasions?', ['A top hat', 'A baseball cap', 'A winter hat', 'A helmet'], 0, 20)">
+                            <div class="icon">🎩</div>
+                            <div class="name">Top Hat</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('hat', '👒', 'Sun Hat', 'What protects you from the sun?', ['A sun hat', 'Sunglasses only', 'A book', 'An umbrella'], 0, 15)">
+                            <div class="icon">👒</div>
+                            <div class="name">Sun Hat</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('hat', '🧢', 'Baseball Cap', 'What sport uses a cap like this?', ['Baseball', 'Swimming', 'Dancing', 'Chess'], 0, 10)">
+                            <div class="icon">🧢</div>
+                            <div class="name">Baseball Cap</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item locked" onclick="showPuzzle('hat', '👑', 'Royal Crown', 'What has a golden top but is not a mountain?', ['A crown', 'A castle', 'A tree', 'A building'], 0)">
+                            <div class="icon">👑</div>
+                            <div class="name">Royal Crown</div>
+                            <div class="price">🧩 Special Unlock</div>
+                        </div>
+                        <div class="clothing-item locked" onclick="showPuzzle('hat', '🎓', 'Graduation Cap', 'What do you wear when you finish school?', ['Graduation cap', 'Party hat', 'Baseball cap', 'Crown'], 0)">
+                            <div class="icon">🎓</div>
+                            <div class="name">Graduation Cap</div>
+                            <div class="price">🧩 Special Unlock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shirts Section -->
+            <div class="store-section" id="shirts-section">
+                <div class="avatar-area">
+                    <h2 style="color: #e91e63; margin-bottom: 20px;">Your Avatar</h2>
+                    <div class="avatar-display">
+                        <div class="avatar">
+                            <div class="avatar-base" id="shirt-avatar">
+                                <div class="avatar-3d">
+                                    <div class="animal-face koala-face" style="width: 80px; height: 80px;">
+                                        <div class="animal-ear left" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-ear right" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-eye left" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-eye right" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-nose" style="width: 8px; height: 6px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="clothing-layer" id="shirt-preview"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clothing-area">
+                    <div class="section-title">👕 Shirt Shop</div>
+                    <div class="clothing-grid">
+                        <div class="clothing-item" onclick="requiresPuzzle('shirt', '👕', 'Basic T-Shirt', 'What is the most common casual shirt?', ['T-shirt', 'Suit jacket', 'Tank top', 'Dress shirt'], 0, 15)">
+                            <div class="icon">👕</div>
+                            <div class="name">Basic T-Shirt</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('shirt', '👔', 'Dress Shirt', 'What do you wear to look professional?', ['Dress shirt', 'Tank top', 'T-shirt', 'Pajamas'], 0, 25)">
+                            <div class="icon">👔</div>
+                            <div class="name">Dress Shirt</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('shirt', '🎽', 'Tank Top', 'What shirt has no sleeves?', ['Tank top', 'Long sleeve shirt', 'Hoodie', 'Sweater'], 0, 12)">
+                            <div class="icon">🎽</div>
+                            <div class="name">Tank Top</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item locked" onclick="showPuzzle('shirt', '🦸', 'Superhero Shirt', 'What makes someone super?', ['Being brave and kind', 'Flying around', 'Having money', 'Being tall'], 0)">
+                            <div class="icon">🦸</div>
+                            <div class="name">Superhero Shirt</div>
+                            <div class="price">🧩 Special Unlock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add more sections for pants, shoes, accessories -->
+            
+            <!-- Pants Section -->
+            <div class="store-section" id="pants-section">
+                <div class="avatar-area">
+                    <h2 style="color: #e91e63; margin-bottom: 20px;">Your Avatar</h2>
+                    <div class="avatar-display">
+                        <div class="avatar">
+                            <div class="avatar-base" id="pants-avatar">
+                                <div class="avatar-3d">
+                                    <div class="animal-face koala-face" style="width: 80px; height: 80px;">
+                                        <div class="animal-ear left" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-ear right" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-eye left" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-eye right" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-nose" style="width: 8px; height: 6px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="clothing-layer" id="pants-preview"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clothing-area">
+                    <div class="section-title">👖 Pants Shop</div>
+                    <div class="clothing-grid">
+                        <div class="clothing-item" onclick="requiresPuzzle('pants', '👖', 'Blue Jeans', 'What pants are made of denim?', ['Blue jeans', 'Dress pants', 'Shorts', 'Pajamas'], 0, 18)">
+                            <div class="icon">👖</div>
+                            <div class="name">Blue Jeans</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('pants', '🩳', 'Shorts', 'What do you wear when it is hot?', ['Shorts', 'Long pants', 'Winter coat', 'Boots'], 0, 12)">
+                            <div class="icon">🩳</div>
+                            <div class="name">Shorts</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('pants', '👗', 'Dress', 'What is a one-piece clothing item?', ['A dress', 'Pants and shirt', 'Two socks', 'A hat'], 0, 25)">
+                            <div class="icon">👗</div>
+                            <div class="name">Dress</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item locked" onclick="showPuzzle('pants', '🦴', 'Fancy Pants', 'What do you call pants that are very stylish?', ['Fancy pants', 'Old pants', 'Torn pants', 'Big pants'], 0)">
+                            <div class="icon">🦴</div>
+                            <div class="name">Fancy Pants</div>
+                            <div class="price">🧩 Special Unlock</div>
+                        </div>
+                        <div class="clothing-item locked" onclick="showPuzzle('pants', '🎭', 'Theater Costume', 'Where do actors perform on stage?', ['In a theater', 'In a store', 'In a car', 'In a house'], 0)">
+                            <div class="icon">🎭</div>
+                            <div class="name">Theater Costume</div>
+                            <div class="price">🧩 Special Unlock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shoes Section -->
+            <div class="store-section" id="shoes-section">
+                <div class="avatar-area">
+                    <h2 style="color: #e91e63; margin-bottom: 20px;">Your Avatar</h2>
+                    <div class="avatar-display">
+                        <div class="avatar">
+                            <div class="avatar-base" id="shoes-avatar">
+                                <div class="avatar-3d">
+                                    <div class="animal-face koala-face" style="width: 80px; height: 80px;">
+                                        <div class="animal-ear left" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-ear right" style="width: 25px; height: 35px;"></div>
+                                        <div class="animal-eye left" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-eye right" style="width: 12px; height: 12px;"></div>
+                                        <div class="animal-nose" style="width: 8px; height: 6px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="clothing-layer" id="shoes-preview"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="clothing-area">
+                    <div class="section-title">👟 Shoe Shop</div>
+                    <div class="clothing-grid">
+                        <div class="clothing-item" onclick="requiresPuzzle('shoes', '👟', 'Sneakers', 'What shoes are good for running?', ['Sneakers', 'High heels', 'Flip flops', 'Boots'], 0, 20)">
+                            <div class="icon">👟</div>
+                            <div class="name">Sneakers</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('shoes', '👠', 'High Heels', 'What shoes make you taller?', ['High heels', 'Flat shoes', 'Sandals', 'Socks'], 0, 30)">
+                            <div class="icon">👠</div>
+                            <div class="name">High Heels</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('shoes', '🥿', 'Flats', 'What shoes are comfortable for walking?', ['Flats', 'High heels', 'Ski boots', 'Ice skates'], 0, 15)">
+                            <div class="icon">🥿</div>
+                            <div class="name">Flats</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item" onclick="requiresPuzzle('shoes', '🩴', 'Sandals', 'What shoes are good for the beach?', ['Sandals', 'Snow boots', 'High heels', 'Sneakers'], 0, 10)">
+                            <div class="icon">🩴</div>
+                            <div class="name">Sandals</div>
+                            <div class="price">🧩 Solve Puzzle</div>
+                        </div>
+                        <div class="clothing-item locked" onclick="showPuzzle('shoes', '🦶', 'Magic Boots', 'What helps you walk and run?', ['Your feet', 'Your hands', 'Your eyes', 'Your ears'], 0)">
+                            <div class="icon">🦶</div>
+                            <div class="name">Magic Boots</div>
+                            <div class="price">🧩 Special Unlock</div>
+                        </div>
+                        <div class="clothing-item locked" onclick="showPuzzle('shoes', '⚡', 'Speed Shoes', 'What is the opposite of slow?', ['Fast', 'Big', 'Small', 'Cold'], 0)">
+                            <div class="icon">⚡</div>
+                            <div class="name">Speed Shoes</div>
+                            <div class="price">🧩 Special Unlock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="store-navigation">
+            <button class="nav-button active" onclick="goToSection(0)">👤 Avatar</button>
+            <button class="nav-button" onclick="goToSection(1)">🎩 Hats</button>
+            <button class="nav-button" onclick="goToSection(2)">👕 Shirts</button>
+            <button class="nav-button" onclick="goToSection(3)">👖 Pants</button>
+            <button class="nav-button" onclick="goToSection(4)">👟 Shoes</button>
+        </div>
+
+        <!-- Puzzle Modal -->
+        <div class="puzzle-modal" id="puzzle-modal">
+            <div class="puzzle-content">
+                <div class="puzzle-title" id="puzzle-title">🧩 Unlock Item</div>
+                <div class="puzzle-question" id="puzzle-question"></div>
+                <div class="puzzle-options" id="puzzle-options"></div>
+                <div class="puzzle-buttons">
+                    <button class="puzzle-btn submit" onclick="submitAnswer()">Submit Answer</button>
+                    <button class="puzzle-btn cancel" onclick="closePuzzle()">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Modal -->
+        <div class="inventory-modal" id="inventory-modal">
+            <div class="inventory-content">
+                <div class="inventory-header">
+                    <div class="inventory-title">👗 My Wardrobe</div>
+                    <div class="close-inventory" onclick="closeInventory()">×</div>
+                </div>
+                <div class="inventory-grid" id="inventory-grid">
+                    <!-- Inventory items will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification -->
+        <div class="notification" id="notification"></div>
+
+        <!-- Floating Effects -->
+        <div class="floating-hearts" id="floating-hearts"></div>
+    </div>
+
+    <script>
+        // Game state
+        let currentSection = 0;
+        let coins = 0; // Start with 0 coins - earn only through puzzles
+        let currentAvatar = '🐨';
+        let selectedAnswer = null;
+        let currentPuzzle = null;
+        let unlockedItems = new Set();
+        let puzzlesSolved = 0;
+        
+        // Avatar wardrobe
+        let wardrobe = {
+            hat: null,
+            shirt: null,
+            pants: null,
+            shoes: null,
+            accessory: null
+        };
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGame();
+            createFloatingHearts();
+            updateCoinDisplay();
+            init3DEffects();
+            update3DAvatar(currentAvatar); // Initialize 3D avatar
+        });
+        
+        // 3D Mouse tracking effects (simplified for better user experience)
+        function init3DEffects() {
+            const container = document.querySelector('.game-container');
+            
+            document.addEventListener('mousemove', function(e) {
+                const x = (e.clientX / window.innerWidth) - 0.5;
+                const y = (e.clientY / window.innerHeight) - 0.5;
+                
+                // Subtle 3D rotation to the entire store based on mouse position
+                const storeFloor = document.getElementById('store-floor');
+                const rotateX = y * 5; // Reduced rotation for more natural feel
+                const rotateY = x * -8;
+                
+                storeFloor.style.transform = `translateX(-${currentSection * 100}vw) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            });
+            
+            // Enhanced clothing item interactions
+            document.querySelectorAll('.clothing-item').forEach((item, index) => {
+                item.addEventListener('mousemove', function(e) {
+                    const rect = item.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const x = (e.clientX - centerX) / (rect.width / 2);
+                    const y = (e.clientY - centerY) / (rect.height / 2);
+                    
+                    item.style.transform = `translateZ(60px) rotateY(${x * 15}deg) rotateX(${y * -15}deg) scale(1.1)`;
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    const baseTransform = index % 2 === 0 ? 
+                        'translateZ(10px) rotateX(2deg) rotateY(3deg)' : 
+                        'translateZ(30px) rotateX(8deg) rotateY(-3deg)';
+                    item.style.transform = baseTransform;
+                });
+            });
+        }
+
+        // Save/Load System
+        function saveGame() {
+            const gameState = {
+                coins: coins,
+                currentAvatar: currentAvatar,
+                wardrobe: wardrobe,
+                unlockedItems: Array.from(unlockedItems),
+                puzzlesSolved: puzzlesSolved
+            };
+            localStorage.setItem('dressToImpressGame', JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const savedGame = localStorage.getItem('dressToImpressGame');
+            if (savedGame) {
+                const gameState = JSON.parse(savedGame);
+                coins = gameState.coins || 0; // Start with 0 instead of 100
+                currentAvatar = gameState.currentAvatar || '🐨';
+                wardrobe = gameState.wardrobe || {
+                    hat: null,
+                    shirt: null,
+                    pants: null,
+                    shoes: null,
+                    accessory: null
+                };
+                unlockedItems = new Set(gameState.unlockedItems || []);
+                puzzlesSolved = gameState.puzzlesSolved || 0;
+                
+                // Update UI
+                update3DAvatar(currentAvatar);
+                updateAvatarInAllSections();
+                updateClothingDisplay();
+                updateCoinDisplay();
+                
+                // Update avatar selector
+                document.querySelectorAll('.avatar-option').forEach(option => {
+                    option.classList.toggle('selected', option.dataset.avatar === currentAvatar);
+                });
+            } else {
+                // First time loading - initialize with default 3D koala
+                update3DAvatar('🐨');
+            }
+        }
+
+        function autoSave() {
+            saveGame();
+        }
+
+        // Navigation with natural avatar movement
+        function goToSection(sectionIndex) {
+            // Add walking animation to avatar
+            document.querySelectorAll('.avatar-base').forEach(avatar => {
+                avatar.classList.add('walking');
+            });
+            
+            // Natural section transition
+            setTimeout(() => {
+                currentSection = sectionIndex;
+                const storeFloor = document.getElementById('store-floor');
+                
+                // Smooth transition without excessive 3D effects
+                storeFloor.style.transition = 'transform 1s ease-in-out';
+                storeFloor.style.transform = `translateX(-${sectionIndex * 100}vw)`;
+                
+                // Update navigation buttons
+                document.querySelectorAll('.nav-button').forEach((btn, index) => {
+                    btn.classList.toggle('active', index === sectionIndex);
+                });
+                
+                // Update avatar in all sections
+                updateAvatarInAllSections();
+                
+                // Remove walking animation after transition
+                setTimeout(() => {
+                    document.querySelectorAll('.avatar-base').forEach(avatar => {
+                        avatar.classList.remove('walking');
+                    });
+                }, 1500);
+            }, 200);
+        }
+
+        // Enhanced avatar celebration
+        function celebrateAvatar() {
+            document.querySelectorAll('.avatar-base').forEach(avatar => {
+                avatar.classList.add('celebrating');
+                setTimeout(() => {
+                    avatar.classList.remove('celebrating');
+                }, 2000);
+            });
+        }
+
+        // Avatar selection with 3D animals
+        document.querySelectorAll('.avatar-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+                this.classList.add('selected');
+                currentAvatar = this.dataset.avatar;
+                update3DAvatar(currentAvatar);
+                updateAvatarInAllSections();
+                createSparkles(this.getBoundingClientRect());
+                autoSave();
+            });
+        });
+
+        function update3DAvatar(animalEmoji) {
+            const container = document.getElementById('avatar-3d-container');
+            if (!container) return;
+            
+            let animalType = '';
+            switch(animalEmoji) {
+                case '🐨': animalType = 'koala'; break;
+                case '🐵': animalType = 'monkey'; break;
+                case '🐶': animalType = 'puppy'; break;
+                case '🐱': animalType = 'cat'; break;
+                case '🐸': animalType = 'frog'; break;
+                case '🐰': animalType = 'rabbit'; break;
+                default: animalType = 'koala';
+            }
+            
+            const earClass = animalType === 'rabbit' ? 'rabbit-ear' : 
+                           animalType === 'cat' ? 'cat-ear' : '';
+            
+            container.innerHTML = `
+                <div class="animal-face ${animalType}-face">
+                    <div class="animal-ear left ${earClass}"></div>
+                    <div class="animal-ear right ${earClass}"></div>
+                    <div class="animal-eye left"></div>
+                    <div class="animal-eye right"></div>
+                    <div class="animal-nose"></div>
+                    <div class="animal-mouth"></div>
+                </div>
+                <div class="animal-shadow"></div>
+            `;
+        }
+
+        function updateAvatarInAllSections() {
+            // Update all avatar displays with the current 3D animal
+            document.querySelectorAll('[id$="-avatar"]').forEach(avatar => {
+                if (avatar.id !== 'current-avatar') {
+                    // For preview avatars, create simplified 3D version
+                    const animalType = getAnimalType(currentAvatar);
+                    avatar.innerHTML = `
+                        <div class="avatar-3d">
+                            <div class="animal-face ${animalType}-face" style="width: 80px; height: 80px;">
+                                <div class="animal-ear left" style="width: 25px; height: 35px;"></div>
+                                <div class="animal-ear right" style="width: 25px; height: 35px;"></div>
+                                <div class="animal-eye left" style="width: 12px; height: 12px;"></div>
+                                <div class="animal-eye right" style="width: 12px; height: 12px;"></div>
+                                <div class="animal-nose" style="width: 8px; height: 6px;"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+        
+        function getAnimalType(emoji) {
+            switch(emoji) {
+                case '🐨': return 'koala';
+                case '🐵': return 'monkey';
+                case '🐶': return 'puppy';
+                case '🐱': return 'cat';
+                case '🐸': return 'frog';
+                case '🐰': return 'rabbit';
+                default: return 'koala';
+            }
+        }
+
+        // Clothing system - now requires puzzles to earn coins first
+        function tryClothing(type, icon, name, price) {
+            if (coins >= price) {
+                if (confirm(`Buy ${name} for ${price} coins?`)) {
+                    coins -= price;
+                    updateCoinDisplay();
+                    wardrobe[type] = icon;
+                    
+                    // Add to unlocked items for inventory system
+                    const itemKey = `${type}-${icon}`;
+                    unlockedItems.add(itemKey);
+                    
+                    updateClothingDisplay();
+                    showNotification(`Purchased ${name}! Looking great! ✨`);
+                    createFloatingHearts();
+                    saveGame(); // Changed from autoSave() to saveGame()
+                }
+            } else {
+                showNotification(`Not enough coins! Solve puzzles to earn more coins. You need ${price} coins.`);
+            }
+        }
+        
+        // New function for puzzle-required items
+        function requiresPuzzle(type, icon, name, question, options, correctIndex, coinReward = 25) {
+            showEarningPuzzle(type, icon, name, question, options, correctIndex, coinReward);
+        }
+
+        function updateClothingDisplay() {
+            // Update main avatar with proper layering
+            const hatLayer = document.getElementById('hat-layer');
+            const shirtLayer = document.getElementById('shirt-layer');
+            const pantsLayer = document.getElementById('pants-layer');
+            const shoesLayer = document.getElementById('shoes-layer');
+            const accessoryLayer = document.getElementById('accessory-layer');
+
+            if (hatLayer) hatLayer.textContent = wardrobe.hat || '';
+            if (shirtLayer) shirtLayer.textContent = wardrobe.shirt || '';
+            if (pantsLayer) pantsLayer.textContent = wardrobe.pants || '';
+            if (shoesLayer) shoesLayer.textContent = wardrobe.shoes || '';
+            if (accessoryLayer) accessoryLayer.textContent = wardrobe.accessory || '';
+
+            // Update preview avatars in each section
+            const previews = ['hat-preview', 'shirt-preview', 'pants-preview', 'shoes-preview'];
+            previews.forEach(previewId => {
+                const preview = document.getElementById(previewId);
+                if (preview) {
+                    const type = previewId.split('-')[0];
+                    preview.textContent = wardrobe[type] || '';
+                }
+            });
+        }
+
+        // Enhanced Puzzle system with earning mechanics
+        function showPuzzle(type, icon, name, question, options, correctIndex) {
+            currentPuzzle = { type, icon, name, correctIndex, isUnlockPuzzle: true };
+            document.getElementById('puzzle-title').textContent = `🧩 Unlock: ${name}`;
+            document.getElementById('puzzle-question').textContent = question;
+            
+            const optionsContainer = document.getElementById('puzzle-options');
+            optionsContainer.innerHTML = '';
+            
+            options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'puzzle-option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectAnswer(index, optionDiv);
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            document.getElementById('puzzle-modal').style.display = 'flex';
+            selectedAnswer = null;
+        }
+        
+        // New earning puzzle function
+        function showEarningPuzzle(type, icon, name, question, options, correctIndex, coinReward = 25) {
+            currentPuzzle = { 
+                type, icon, name, correctIndex, coinReward, 
+                isUnlockPuzzle: false, isEarningPuzzle: true 
+            };
+            document.getElementById('puzzle-title').textContent = `💰 Earn Coins to Buy: ${name}`;
+            document.getElementById('puzzle-question').textContent = `${question} (Reward: ${coinReward} coins)`;
+            
+            const optionsContainer = document.getElementById('puzzle-options');
+            optionsContainer.innerHTML = '';
+            
+            options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'puzzle-option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectAnswer(index, optionDiv);
+                optionsContainer.appendChild(optionDiv);
+            });
+            
+            document.getElementById('puzzle-modal').style.display = 'flex';
+            selectedAnswer = null;
+        }
+
+        function selectAnswer(index, element) {
+            document.querySelectorAll('.puzzle-option').forEach(opt => opt.style.background = '#f8f8f8');
+            element.style.background = '#ff6b9d';
+            element.style.color = 'white';
+            selectedAnswer = index;
+        }
+
+        function submitAnswer() {
+            if (selectedAnswer === null) {
+                showNotification('Please select an answer first!');
+                return;
+            }
+            
+            if (selectedAnswer === currentPuzzle.correctIndex) {
+                puzzlesSolved++;
+                celebrateAvatar(); // Add celebration animation
+                
+                if (currentPuzzle.isUnlockPuzzle) {
+                    // Unlock item puzzle
+                    wardrobe[currentPuzzle.type] = currentPuzzle.icon;
+                    const itemKey = `${currentPuzzle.type}-${currentPuzzle.icon}`;
+                    unlockedItems.add(itemKey);
+                    updateClothingDisplay();
+                    showNotification(`🎉 Correct! You unlocked ${currentPuzzle.name}!`);
+                    
+                    // Remove lock from the item
+                    document.querySelectorAll('.clothing-item.locked').forEach(item => {
+                        if (item.querySelector('.name').textContent === currentPuzzle.name) {
+                            item.classList.remove('locked');
+                            item.onclick = () => tryClothing(currentPuzzle.type, currentPuzzle.icon, currentPuzzle.name, 0);
+                        }
+                    });
+                } else if (currentPuzzle.isEarningPuzzle) {
+                    // Earning puzzle
+                    coins += currentPuzzle.coinReward;
+                    updateCoinDisplay();
+                    showNotification(`🎉 Correct! You earned ${currentPuzzle.coinReward} coins! Now you can buy ${currentPuzzle.name}!`);
+                    
+                    // After earning coins, allow purchase
+                    setTimeout(() => {
+                        tryClothing(currentPuzzle.type, currentPuzzle.icon, currentPuzzle.name, currentPuzzle.coinReward);
+                    }, 2000);
+                }
+                
+                closePuzzle();
+                createFloatingHearts();
+                autoSave();
+            } else {
+                showNotification('❌ Wrong answer! Try again!');
+                // Add disappointed animation
+                document.querySelectorAll('.avatar-base').forEach(avatar => {
+                    avatar.style.filter = 'grayscale(50%)';
+                    setTimeout(() => {
+                        avatar.style.filter = '';
+                    }, 1000);
+                });
+            }
+        }
+
+        function closePuzzle() {
+            document.getElementById('puzzle-modal').style.display = 'none';
+            selectedAnswer = null;
+            currentPuzzle = null;
+        }
+
+        // UI helpers
+        function updateCoinDisplay() {
+            document.getElementById('coin-count').textContent = coins;
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function createFloatingHearts() {
+            const heartsContainer = document.getElementById('floating-hearts');
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div');
+                    heart.className = 'heart';
+                    heart.textContent = ['💖', '💕', '💗', '✨', '🌟'][Math.floor(Math.random() * 5)];
+                    heart.style.left = Math.random() * 100 + 'vw';
+                    heart.style.animationDelay = Math.random() * 2 + 's';
+                    heartsContainer.appendChild(heart);
+                    
+                    setTimeout(() => {
+                        heart.remove();
+                    }, 3000);
+                }, i * 200);
+            }
+        }
+
+        function createSparkles(rect) {
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.left = rect.left + Math.random() * rect.width + 'px';
+                    sparkle.style.top = rect.top + Math.random() * rect.height + 'px';
+                    sparkle.style.animationDelay = Math.random() + 's';
+                    document.body.appendChild(sparkle);
+                    
+                    setTimeout(() => {
+                        sparkle.remove();
+                    }, 2000);
+                }, i * 50);
+            }
+        }
+        
+        // Inventory System
+        function showInventory() {
+            const modal = document.getElementById('inventory-modal');
+            const grid = document.getElementById('inventory-grid');
+            
+            // Clear existing content
+            grid.innerHTML = '';
+            
+            // Get purchased items
+            const purchasedItems = getAllPurchasedItems();
+            
+            if (purchasedItems.length === 0) {
+                grid.innerHTML = '<div class="inventory-empty">🛍️<br>Your wardrobe is empty!<br>Solve puzzles to unlock items!</div>';
+            } else {
+                purchasedItems.forEach(item => {
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'inventory-item';
+                    
+                    // Check if item is currently equipped
+                    const isEquipped = isItemEquipped(item.category, item.emoji);
+                    if (isEquipped) {
+                        itemElement.classList.add('equipped');
+                    }
+                    
+                    itemElement.innerHTML = `
+                        <div class="inventory-item-emoji">${item.emoji}</div>
+                        <div class="inventory-item-name">${item.name}</div>
+                        ${isEquipped ? 
+                            '<div class="equipped-text">✓ Equipped</div>' : 
+                            `<button class="equip-button" onclick="equipItem('${item.category}', '${item.emoji}')">Equip</button>`
+                        }
+                    `;
+                    
+                    grid.appendChild(itemElement);
+                });
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeInventory() {
+            document.getElementById('inventory-modal').style.display = 'none';
+        }
+        
+        function getAllPurchasedItems() {
+            const items = [];
+            
+            // Define all possible items
+            const allItems = [
+                // Hats
+                { category: 'hat', emoji: '👑', name: 'Crown' },
+                { category: 'hat', emoji: '🎩', name: 'Top Hat' },
+                { category: 'hat', emoji: '🧢', name: 'Cap' },
+                { category: 'hat', emoji: '👒', name: 'Sun Hat' },
+                
+                // Shirts  
+                { category: 'shirt', emoji: '👕', name: 'T-Shirt' },
+                { category: 'shirt', emoji: '👔', name: 'Tie' },
+                { category: 'shirt', emoji: '🎽', name: 'Tank Top' },
+                { category: 'shirt', emoji: '👗', name: 'Dress' },
+                
+                // Pants
+                { category: 'pants', emoji: '👖', name: 'Jeans' },
+                { category: 'pants', emoji: '🩳', name: 'Shorts' },
+                { category: 'pants', emoji: '👘', name: 'Kimono' },
+                { category: 'pants', emoji: '🥻', name: 'Sari' },
+                
+                // Shoes
+                { category: 'shoes', emoji: '👟', name: 'Sneakers' },
+                { category: 'shoes', emoji: '👠', name: 'Heels' },
+                { category: 'shoes', emoji: '🥾', name: 'Boots' },
+                { category: 'shoes', emoji: '⚡', name: 'Speed Shoes' },
+                
+                // Accessories
+                { category: 'accessory', emoji: '👓', name: 'Glasses' },
+                { category: 'accessory', emoji: '⌚', name: 'Watch' },
+                { category: 'accessory', emoji: '💎', name: 'Diamond Ring' },
+                { category: 'accessory', emoji: '🎭', name: 'Mask' }
+            ];
+            
+            // Filter to only show unlocked items
+            allItems.forEach(item => {
+                const itemKey = `${item.category}-${item.emoji}`;
+                if (unlockedItems.has(itemKey)) {
+                    items.push(item);
+                }
+            });
+            
+            return items;
+        }
+        
+        function isItemEquipped(category, emoji) {
+            return wardrobe[category] === emoji;
+        }
+        
+        function equipItem(category, emoji) {
+            // Equip the item
+            wardrobe[category] = emoji;
+            
+            // Update avatar display
+            updateClothingDisplay();
+            
+            // Save game state
+            saveGame();
+            
+            // Close inventory and show notification
+            closeInventory();
+            showNotification(`✨ Equipped ${emoji}! ✨`);
+            
+            // Add sparkle effect
+            createSparkles();
+        }
+
+        // Interactive elements (removed coin-clicking, now earn through puzzles)
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('heart')) {
+                // Hearts now just provide visual feedback
+                e.target.remove();
+                showNotification('✨ Keep solving puzzles to earn coins! ✨');
+            }
+        });
+    </script>
+</body>
+</html>
