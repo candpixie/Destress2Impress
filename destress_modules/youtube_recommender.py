@@ -2,7 +2,7 @@
 import requests
 
 #youtube API is Emily's
-YOUTUBE_API_KEY = "AIzaSyCb0DQcnV6XZKo67lh7GAB1IuawPnELpLU"
+YOUTUBE_API_KEY = ""
 BASE_URL = "https://www.googleapis.com/youtube/v3/search"
 
 def recommend_videos(stress_level):
